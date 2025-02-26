@@ -22,7 +22,7 @@ library(rhandsontable)
 library(data.table)
 library(openxlsx)
 
-###############
+
 ui <- fluidPage(
   # tags$h2('Cogitaas'), #heading
   # p('Post Modeling'),# placeholder text
