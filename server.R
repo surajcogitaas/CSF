@@ -4,24 +4,6 @@
 options(shiny.maxRequestSize = 500*1024^2)
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 # Define the Server Logic
 server <- function(input, output, session) {
   
@@ -144,7 +126,7 @@ server <- function(input, output, session) {
   })
   
   
-  ############################################################### Dashboard UI ###################################################################
+  ##################################################################### Dashboard Start ###########################################################################
   # Reactive value to store file extension
   file_extension <- reactive({
     
@@ -716,5 +698,5 @@ server <- function(input, output, session) {
   #     htmlwidgets::saveWidget(plot_reactive(), file) 
   #   }
   # )
-  
+  ###################################################################### Dashbroad End ############################################################################
 }
