@@ -3,7 +3,7 @@
 # setting this option. Here we'll raise limit to 9MB.
 options(shiny.maxRequestSize = 500*1024^2)
 
-##### UI ##########
+
 # Define the Server Logic
 server <- function(input, output, session) {
   
