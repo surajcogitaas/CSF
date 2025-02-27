@@ -28,8 +28,9 @@ ui <- fluidPage(
   # p('Post Modeling'),# placeholder text
   # p('Cogitaas'),
   # shinythemes::themeSelector(),
+  theme = shinytheme("flatly"),
   # theme = bslib::bs_theme(bootswatch = "darkly"),
-  theme = bslib::bs_theme(bootswatch = "flatly"),
+  # theme = bslib::bs_theme(bootswatch = "flatly"),
   # theme = bslib::bs_theme(bootswatch = "cosmo"),
   # theme = bslib::bs_theme(bootswatch = "simplex"),
   # theme = bslib::bs_theme(bootswatch = "yeti"),
@@ -69,7 +70,8 @@ ui <- fluidPage(
                dashboardPage(
                  dashboardHeader(disable = TRUE),
                  dashboardSidebar(disable = TRUE),
-                 dashboardBody(
+                 dashboardBody( 
+                   # theme = bs_theme(bootswatch = "flatly"),
                    tabsetPanel(
                      tabPanel("Model Selection Dashboard",
                               fluidRow(
@@ -212,7 +214,17 @@ ui <- fluidPage(
                         '.xlsx'
                       )
             ),
-            
+            fileInput('l0file',"Upload L0 File",
+                      accept = c(
+                        'text/csv',
+                        'text/comma-separated-values',
+                        'text/tab-separated-values',
+                        'text/plain',
+                        '.csv',
+                        '.xlsx'
+                      )
+            ),
+            uiOutput("msheet_ui"),
             fluidRow(
               column(4,
                      # Row for selecting work type (Dropdown)

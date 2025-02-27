@@ -54,9 +54,48 @@ server <- function(input, output, session) {
     }
   })
   
+  #### Upload LO file (contains selected models) ########
+  # Reactive value to store file extension
+  L0_file_ext <- reactive({
+    
+    req(input$l0file)
+    ext <- tools::file_ext(input$l0file$name)
+    return(ext)
+  })
+  #Extract sheet name when excel file is uploaded
+  observeEvent(input$l0file,{
+    if(L0_file_ext() == "xlsx"){
+      sheets <- excel_sheets(input$l0file$datapath)
+      updateSelectInput(session, 'sheet', choices = sheets, selected = "FinalM0")
+    }
+  })
+  #Dynamic UI for sheet selection
+  output$msheet_ui <- renderUI({
+    if(L0_file_ext() == "xlsx"){
+      sheets <- excel_sheets(input$l0file$datapath)
+      selectInput("msheet", "Select Sheet", choices = sheets, selected = "FinalM0")
+    }
+  })
   
-   
+  
+  #Read Selected Sheet data
+  L0_file <- reactive({
+    req(input$l0file)
+    ext = L0_file_ext()
+    if(ext == "csv"){
+      df <- read.csv(input$l0file$datapath)
+    }else if(ext == "xlsx"){
+      df <- read_excel(input$l0file$datapath,sheet = input$msheet)
+    }else{
+      return(NULL)
+    }
+  })
+  
   ############################ Trigger Script Execution ############################
+  
+  #Initialize an empty reactive List to store output of functions
+  output_data_storage <- reactiveValues(integrator_mapping=NULL)
+  
   observeEvent(input$run_process, {
     output$process_status <- renderText("Processing...Please wait.")
     
@@ -64,10 +103,7 @@ server <- function(input, output, session) {
     project_root <<- dir_path()
     Base_Path <<- project_root
     path <<-  project_root
-    # print(paste("Uploaded file path:", D0_file()))
-
-    print(paste("Debug: project_root =", project_root))
-    print(paste("Debug: Base_Path =", Base_Path))
+    
 
     # # Check if Base_Path is NULL or empty
     # if (is.null(Base_Path) || Base_Path == "") {
@@ -78,8 +114,11 @@ server <- function(input, output, session) {
     # D0_file_path <- input$salesfile$datapath  # File path of uploaded file
     # Extract file name with extensio
     
-    D0_file <<-  DO_file_name() #input$salesfile$name #"KHC_Spoonables_USA_D0_modelling.csv" #input$salesfile #"KHC_Spoonables_USA_D0_modelling.csv" #input$salesfile
-    print(paste("Debug: D0_file =", D0_file))
+    # D0_file <<-  DO_file_name() #input$salesfile$name #"KHC_Spoonables_USA_D0_modelling.csv" #input$salesfile #"KHC_Spoonables_USA_D0_modelling.csv" #input$salesfile
+    
+    ## call data frames
+    D0_file <- D0_df()
+    L0_file <- L0_file()
     
     worktype <<- input$worktype
     Integration_process_needed <<- input$integration_needed
@@ -99,16 +138,18 @@ server <- function(input, output, session) {
     #Source required scripts
     # print(paste("Checking file path:", paste(project_root, worktype, "/8. Codes/functions", "R_Packages.R", sep = "/")))
     
-    source(file.path(project_root, worktype, "8. Codes/functions", "R_Packages.R"))
-    source(file.path(project_root, worktype, "8. Codes/functions", "Integrator.R"))
+    # source(file.path(project_root, worktype, "8. Codes/functions", "R_Packages.R"))
+    # source(file.path(project_root, worktype, "8. Codes/functions", "Integrator.R"))
+    source(file.path("functions", "R_Packages.R"))
+    source(file.path("functions", "Integrator.R"))
     
     # Run integration if needed
     if (Integration_process_needed == "Yes") {
-      integrator1(project_root, Integration_process_needed, input_type, worktype)
+      output_data_storage$integrator_mapping = integrator1(brand_model_df= L0_file, Integration_process_needed, input_type, worktype)
     }
     
     # Run main output process
-    source(file.path(project_root, worktype, "8. Codes/functions", "Output Main2.R"))
+    source(file.path("functions", "Output Main2.R"))
     result <- Output_Main2(project_root, Integration_process_needed, input = input_type, 
                            L0_indicator, L2_indicator, L3_indicator, L1_indicator, 
                            datafrequency, CMA_input, NSV_input, D0_file, 
