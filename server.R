@@ -12,14 +12,31 @@ server <- function(input, output, session) {
   roots <- c(Home = normalizePath("~"), Projects = "C:/")
   
   # Enable directory selection with folder navigation
-  shinyDirChoose(input, "select_dir", roots = roots, allowDirCreate = TRUE)
+  shinyDirChoose(input, "select_dir", roots = roots, allowDirCreate = TRUE,session = session)
+
+  # Store directory path (initially set to current working directory)
+  dir_path <- reactiveVal(getwd())
   
-  # Reactive value to store selected directory path
-  dir_path <- reactive({
-    req(input$select_dir)
-    parseDirPathth(roots, input$select_dir)
+  # # Update `dir_path` when user selects a directory
+  observeEvent(input$select_dir, {
+    req(input$select_dir)  # Ensure input is not NULL
+    dir_path(parseDirPath(roots, input$select_dir))  # Update path
+    # print(dir_path())
+    if(is.null(input$select_dir) || length(input$select_dir) == 0 || length(dir_path()) == 0){
+      dir_path(getwd())
+    }else{
+      # dir_path(parseDirPath(roots, input$select_dir))
+    }
   })
-  
+  # # Update `dir_path` when user selects a directory
+  # observeEvent(input$select_dir, {
+  #   if (is.null(input$select_dir) || length(input$select_dir) == 0) {
+  #     dir_path(getwd())  # Reset to current working directory if canceled
+  #   } else {
+  #     dir_path(parseDirPath(roots, input$select_dir))  # Update path when a folder is selected
+  #   }
+  # })  # This ensures that even when canceled, it still runs
+
   # Display selected directory
   output$selected_dir <- renderPrint({
     dir_path()
