@@ -3,9 +3,9 @@
  If Yes then
  take input file as Brand_Variant or Brand_PPG or Brand_PackType or Brand_Variant_PPG
 '
-integrator1 <- function(brand_model_df, Integration_process_needed, input, worktype){
+integrator1 <- function(project_root, Integration_process_needed, input, worktype){
 
-  df_m0 <- brand_model_df #read.xlsx(file.path(Base_Path, worktype, "4. Modelling/writedata/selected models", "Wtd_avg_MCV_Brand.xlsx" ), sheet = 3)
+  df_m0 <- read.xlsx(file.path(Base_Path, worktype, "4. Modelling/writedata/selected models", "Wtd_avg_MCV_Brand.xlsx" ), sheet = 3)
   
 if(Integration_process_needed == "Yes"){
 
@@ -30,7 +30,7 @@ if(length(sp[[1]])==2){
   
 }
 
-return(integratormapping) #write.csv(integratormapping, file.path(Base_Path, worktype, "2. D0", "integrator_mapping.csv"), row.names = F)
+write.csv(integratormapping, file.path(Base_Path, worktype, "2. D0", "integrator_mapping.csv"), row.names = F)
 
 }}
 
