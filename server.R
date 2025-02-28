@@ -16,8 +16,8 @@ server <- function(input, output, session) {
   
   # Reactive value to store selected directory path
   dir_path <- reactive({
-    req(input$select_dir)
-    parseDirPath(roots, input$select_dir)
+    # req(input$select_dir)
+    parseDirPathth(roots, input$select_dir)
   })
   
   # Display selected directory
@@ -53,8 +53,7 @@ server <- function(input, output, session) {
       return(input$salesfile$name)
     }
   })
-  
-  
+  # observe({print(dir_path())})
    
   ############################ Trigger Script Execution ############################
   observeEvent(input$run_process, {
@@ -64,8 +63,7 @@ server <- function(input, output, session) {
     project_root <<- dir_path()
     Base_Path <<- project_root
     path <<-  project_root
-    # print(paste("Uploaded file path:", D0_file()))
-
+    
     print(paste("Debug: project_root =", project_root))
     print(paste("Debug: Base_Path =", Base_Path))
 
