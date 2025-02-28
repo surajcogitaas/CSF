@@ -16,7 +16,7 @@ server <- function(input, output, session) {
   
   # Reactive value to store selected directory path
   dir_path <- reactive({
-    # req(input$select_dir)
+    req(input$select_dir)
     parseDirPathth(roots, input$select_dir)
   })
   
