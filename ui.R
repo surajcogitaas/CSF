@@ -75,6 +75,68 @@ ui <- fluidPage(
                    tabsetPanel(
                      tabPanel("Model Selection Dashboard",
                               fluidRow(
+                                column(12,
+                                  box(title = "Configuration Details:", width = 12, status = "primary", solidHeader = TRUE,collapsible = TRUE,
+                                    fluidRow(
+                                      column(2,
+                                             # Row for selecting work type (Dropdown)
+                                             selectInput("worktype", "Select Work Type", choices = c("Onboard", "Continuity","Refresh")),
+                                      ),
+                                      column(3,
+                                             # Row for integration process selection (Yes/No)
+                                             radioButtons("integration_needed", "Integration Process Needed?", 
+                                                          choices = c("Yes", "No"), selected = "No"),
+                                      ),
+                                      column(2,
+                                             
+                                             conditionalPanel(
+                                               condition = "input.integration_needed == 'Yes'",
+                                               fluidRow(
+                                                 column(12,
+                                                        selectInput("input_type", "Select Input Type", 
+                                                                    choices = c("Brand_Variant", "Brand_PPG", "Brand_PackType", "Brand_Variant_PPG"),selected = "Brand_Variant")
+                                                 )
+                                               )
+                                             ),
+                                             
+                                      ),
+                                      # column(1,),
+                                      column(2,
+                                             # Row for frequency selection
+                                             selectInput("datafrequency", "Data Frequency", 
+                                                         choices = c("Weekly","Monthly"))
+                                      ),
+                                      
+                                      column(2,
+                                             # Row for csf_period selection
+                                             selectInput("csf_period", "csf Period", 
+                                                         choices = c(52, 12))
+                                      ),
+                                      
+                                      
+                                      
+                                    ),
+                                    # Granularity/Scope Selection
+                                    tags$h4("Granularity/Scope Selection:"),
+                                    fluidRow(
+                                      column(3, selectInput("L0_indicator", "L0 Indicator", choices = c("NA","Channel","Brand","Variant","PackType","PPG","PackSize"), selected = 'NA')),
+                                      column(3, conditionalPanel(
+                                        condition = "input.L0_indicator != 'NA'",
+                                        selectInput("L1_indicator", "L1 Indicator", choices = c("NA","Channel","Brand","Variant","PackType","PPG","PackSize"), selected = 'NA')
+                                      )),
+                                      column(3, conditionalPanel(
+                                        condition = "input.L1_indicator != 'NA'",
+                                        selectInput("L2_indicator", "L2 Indicator", choices = c("NA","Channel","Brand","Variant","PackType","PPG","PackSize"), selected = 'NA')
+                                      )),
+                                      column(3, conditionalPanel(
+                                        condition = "input.L2_indicator != 'NA'",
+                                        selectInput("L3_indicator", "L3 Indicator", choices = c("NA","Channel","Brand","Variant","PackType","PPG","PackSize"), selected = 'NA')
+                                      ))
+                                    )
+                                  )
+                                )
+                              ),
+                              fluidRow(
                                 column(3,
                                        box(title = "Controls", width = 12, status = "primary", solidHeader = TRUE,collapsible = TRUE,
                                            

@@ -8,7 +8,7 @@ options(shiny.maxRequestSize = 500*1024^2)
 server <- function(input, output, session) {
   
   ############ Project Directory selection ####################
-  # Define accessible root directories
+  # Define accessible root directories 
   roots <- c(Home = normalizePath("~"), Projects = "C:/")
   
   # Enable directory selection with folder navigation
