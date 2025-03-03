@@ -45,6 +45,24 @@ server <- function(input, output, session) {
   # Set up directory selection
   # selected_dir <- "C:/Users/Suraj/OneDrive - CogitaasAVA/Desktop/Post Modelling/CSF-Folder/"
   
+  ########################################################### Sidebar ###########################################################
+  output$toggle_ui <- renderUI({
+    actionButton("toggle", "Toggle Sidebar")
+  })
+  observeEvent(input$toggle,{
+    runjs("
+          var sidebar = document.getElementById('sidebar_1');
+          var main = document.getElementById('main_1');
+          if (sidebar.style.display === 'none') {
+            sidebar.style.display = 'block';
+            main.classList.remove('expanded-main');
+          } else {
+            sidebar.style.display = 'none';
+            main.classList.add('expanded-main');
+          }
+      ")
+  })
+  
   #Uplaod D0 file
   D0_df <- reactive({
     inFile <- input$salesfile
@@ -605,11 +623,11 @@ server <- function(input, output, session) {
   output$L0_file_contents <- renderRHandsontable({
     req(selected_models_df())
     df <- selected_models_df() 
+    # df <- df %>% 
+    #   select(method,Channel,Brand,Variant,PackType,PPG,selectedmodels,RPIto,Adj.Rsq,AIC,MCV.MCV,CSF.CSF,actualdistvar,Index)
     dataframe1 <- rhandsontable(df) %>% hot_cols(readOnly = TRUE)
     return(dataframe1)
   })
-  
-  
   
   # Download File
   # file_name1 <- reactiveVal(input$modelfile$name)

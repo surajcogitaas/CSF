@@ -24,6 +24,7 @@ library(openxlsx)
 
 
 ui <- fluidPage(
+ 
   # tags$h2('Cogitaas'), #heading
   # p('Post Modeling'),# placeholder text
   # p('Cogitaas'),
@@ -197,8 +198,17 @@ ui <- fluidPage(
       tabPanel(
         title="M1 to Results",
         # h2("Content of Tab 1"),
+        useShinyjs(),
+        tags$head(
+          tags$style(HTML("
+                          .hidden-sidebar {display: none !important;}
+                          .expanded-main{width:100% !important; flex: 0 0 100% !impotant; max-width: 100% !important;}
+                          "))
+        ),
+        uiOutput("toggle_ui"),
         sidebarLayout(
           sidebarPanel(
+            id = "sidebar_1",
             tags$h2("Configuration Details"),
             tags$hr(),
             # p("place controls here"),
@@ -271,9 +281,9 @@ ui <- fluidPage(
             ),
             fluidRow(
               column(4,
-                      sidebarPanel(
+                      # sidebarPanel(
                         actionButton("run_process", "Run Process", icon = icon("play")),
-                      )
+                      # )
                      
               ),
               column(8,
@@ -283,6 +293,7 @@ ui <- fluidPage(
             
           ),
           mainPanel(
+            id = "main_1",
             h2('Main content of Tab 1'),
             p("Display main content"),
             DT::dataTableOutput("D0_file_contents")
