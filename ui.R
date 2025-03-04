@@ -74,6 +74,48 @@ ui <- fluidPage(
                  dashboardBody(
                    tabsetPanel(
                      tabPanel("Model Selection Dashboard",
+                              
+                              fluidRow(
+                                column(12,
+                                  box(title = "Move/Copy Files", width = 12, status = "primary", solidHeader = TRUE,collapsible = TRUE,
+                                      fluidRow(
+                                        column(2,
+                                               shinyDirButton("srcFolder", "Source Folder", "Select source folder"),
+                                        ),
+                                        column(3, 
+                                               verbatimTextOutput("srcDir"),
+                                        ),
+                                        column(3,
+                                               selectInput("dataFile", "Files:", choices = NULL, multiple = TRUE),
+                                        ),
+                                        column(2, offset = 2,
+                                               actionButton("reset", "Reset")
+                                        )
+                                      ),
+                                      
+                                      fluidRow(
+                                        column(2,
+                                               shinyDirButton("destFolder", "Destination Folder", "Select destination folder"),
+                                        ),
+                                        column(3,
+                                               verbatimTextOutput("destDir"),
+                                        ),
+                                        column(2,
+                                               actionButton("copy", "Copy Files"),
+                                        ),
+                                        column(2,
+                                               actionButton("move", "Move Files"),
+                                        ),
+                                        column(3,
+                                               verbatimTextOutput("message")
+                                        )
+                                        
+                                      ),
+                                      
+                                  )
+                                )
+                              ),
+                              
                               fluidRow(
                                 column(12,
                                   box(title = "Configuration Details:", width = 12, status = "primary", solidHeader = TRUE,collapsible = TRUE,

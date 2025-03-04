@@ -45,6 +45,60 @@ server <- function(input, output, session) {
   # Set up directory selection
   # selected_dir <- "C:/Users/Suraj/OneDrive - CogitaasAVA/Desktop/Post Modelling/CSF-Folder/"
   
+  ########################################################### Move/Copy Fils Box ##################################################
+  # volumes <-  dir_path()#roots # c(Home = normalizePath("~"), Projects = getwd())
+  
+  observe({
+    req(dir_path())
+    roots <- c(MyVolume = dir_path())
+    shinyDirChoose(input, "srcFolder", roots = roots)
+    shinyDirChoose(input, "destFolder", roots = roots)
+  })
+  
+  
+  fileList <- reactiveVal(NULL)
+  
+  observeEvent(input$srcFolder, {
+    req(input$srcFolder)
+    src <- parseDirPath(c(MyVolume = dir_path()), input$srcFolder)
+    output$srcDir <- renderText({ paste("Source Directory:", src) })
+    files <- list.files(src, pattern = "(?i)\\.(xlsx?|csv)$", full.names = TRUE, recursive = FALSE)
+    files <- files[!file.info(files)$isdir]
+    fileList(files)
+    choices <- c("All" = "all", setNames(files, basename(files)))
+    updateSelectInput(session, "dataFile", choices = choices)
+  })
+  
+  observeEvent(input$destFolder, {
+    req(input$destFolder)
+    dest <- parseDirPath(c(MyVolume = dir_path()), input$destFolder)
+    output$destDir <- renderText({ paste("Destination Directory:", dest) })
+  })
+  
+  processFiles <- function(fun, successMsg) {
+    req(input$dataFile, input$destFolder)
+    dest <- parseDirPath(c(MyVolume = dir_path()), input$destFolder)
+    selected <- if ("all" %in% input$dataFile) fileList() else input$dataFile
+    results <- sapply(selected, function(f) {
+      fun(f, file.path(dest, basename(f)))
+    })
+    output$message <- renderText(
+      if (all(results)) paste(length(selected),successMsg," ") else "Operation failed!"
+    )
+  }
+  
+  observeEvent(input$move, processFiles(file.rename, "files moved successfully!"))
+  observeEvent(input$copy, processFiles(function(from, to) file.copy(from, to, overwrite = TRUE), "files copied successfully!"))
+  
+  #Reset button clear files list, selections and messages.
+  observeEvent(input$reset, {
+    fileList(NULL)
+    updateSelectInput(session, "dataFile", choices = character(0))
+    output$srcDir <- renderText({ "" })
+    output$destDir <- renderText({ "" })
+    output$message <- renderText({ "" })
+  })
+  
   ########################################################### Sidebar ###########################################################
   output$toggle_ui <- renderUI({
     actionButton("toggle", "Toggle Sidebar")
