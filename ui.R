@@ -14,6 +14,7 @@ library(anytime)
 library(ggplot2)
 library(shinyWidgets)
 library(shinythemes)
+
 library(plotly)
 library(shinyFiles)
 library(tools)
@@ -182,16 +183,26 @@ ui <- fluidPage(
                                 column(3,
                                        box(title = "Controls", width = 12, status = "primary", solidHeader = TRUE,collapsible = TRUE,
                                            
-                                           fileInput('modelfile', "Upload L0 File", 
-                                                     accept = c(
-                                                       'text/csv',
-                                                       'text/comma-separated-values',
-                                                       'text/tab-separated-values',
-                                                       'text/plain',
-                                                       '.csv',
-                                                       '.xlsx'
-                                                     )),
-                                           uiOutput("sheet_ui"),  # Dynamic sheet selection
+                                           # fileInput('modelfile', "Upload L0 File", 
+                                           #           accept = c(
+                                           #             'text/csv',
+                                           #             'text/comma-separated-values',
+                                           #             'text/tab-separated-values',
+                                           #             'text/plain',
+                                           #             '.csv',
+                                           #             '.xlsx'
+                                           #           )),
+                                           # uiOutput("sheet_ui"),  # Dynamic sheet selection
+                                           
+                                           # Multi-select dropdown for files; choices will be updated from the reactive directory
+                                           selectInput("D0_file", "Select D0 File", choices = NULL),
+                                           
+                                           selectInput("L0_file", "Select L0 File", choices = NULL, multiple = TRUE),
+                                           
+                                           
+                                           # Button to trigger the file loading process
+                                           actionButton("upload_btn", "Upload Files"),
+                                           
                                            
                                            uiOutput("modelof_ui"),
                                            

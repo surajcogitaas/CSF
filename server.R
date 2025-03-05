@@ -3,6 +3,8 @@
 # setting this option. Here we'll raise limit to 9MB.
 options(shiny.maxRequestSize = 500*1024^2)
 
+# options(shiny.error = browser)
+
 #### Server ######
 # Define the Server Logic
 server <- function(input, output, session) {
@@ -99,185 +101,243 @@ server <- function(input, output, session) {
     output$message <- renderText({ "" })
   })
   
-  ########################################################### Sidebar ###########################################################
-  output$toggle_ui <- renderUI({
-    actionButton("toggle", "Toggle Sidebar")
+  
+  
+  ################ file uploading #############
+  # Define the directory that contains Do file
+  D0_dir <- reactive({file.path(dir_path(),"Onboard/2. D0" )}) #"Onboard/4. Modelling/writedata/Selected models"
+  
+  # Observe the reactive directory and update the file choices accordingly
+  observe({
+    current_dir <- D0_dir()
+    files <- list.files(
+      path = current_dir,
+      pattern = "\\.(csv)$",
+      full.names = TRUE,recursive = FALSE
+    )
+    files <- files[!file.info(files)$isdir]
+    fileList(files)
+    
+    choices <- c(setNames(files, basename(files)))
+    updateSelectInput(session, "D0_file", choices = choices)
+    
   })
-  observeEvent(input$toggle,{
-    runjs("
-          var sidebar = document.getElementById('sidebar_1');
-          var main = document.getElementById('main_1');
-          if (sidebar.style.display === 'none') {
-            sidebar.style.display = 'block';
-            main.classList.remove('expanded-main');
-          } else {
-            sidebar.style.display = 'none';
-            main.classList.add('expanded-main');
+  
+  # When the upload button is clicked, read the selected files
+  D0_df <- eventReactive(input$upload_btn, {
+    req(input$D0_file)
+    file <- input$D0_file
+    
+    # Ensure at least one file is selected
+    if (is.null(file))
+      return(NULL)
+    
+    # Read each file based on its extension
+    ext <- tolower(tools::file_ext(file))
+    if (ext == "csv") {
+      D0_df <- read.csv(file)
+    } else if (ext %in% c("xls", "xlsx")) {
+      NULL #read.xlsx(file)
+    } else {
+      NULL
+    }
+    return(D0_df)
+    
+  })
+  
+  #Define a directory contain LO file
+  L0_dir <- reactive({file.path(dir_path(),"Onboard/4. Modelling/writedata/Selected models" )}) #
+  
+  # Observe the reactive directory and update the file choices accordingly
+  observe({
+    current_dir <- L0_dir()
+    files <- list.files(
+      path = current_dir,
+      pattern = "\\.(xls|xlsx)$",
+      full.names = TRUE,recursive = FALSE
+    )
+    files <- files[!file.info(files)$isdir]
+    fileList(files)
+    
+    choices <- c(setNames(files, basename(files)))
+    updateSelectInput(session, "L0_file", choices = choices)
+    
+  })
+  
+  # observe({print(input$L0_file)})
+  
+  # When the upload button is clicked, read each selected file separately
+  file_list <- eventReactive(input$upload_btn,{
+    req(input$L0_file)
+    files <- input$L0_file
+    # print(files)
+    lst <- lapply(files, function(file){
+      # Read file based on its extension
+      ext <- tolower(tools::file_ext(file))
+      # Extract sheet name when excel file is uploaded
+        if(ext %in% c("xls", "xlsx")){
+          sheets <- excel_sheets(file)
+          if (c("FinalM0") %in% sheets) {
+            df <- read_excel(file,sheet = "FinalM0")
+          }else{
+            df <- read_excel(file)
           }
-      ")
+        }else{
+          NULL
+        }
+      # print(df)
+      return(df)
+    })
+    # Use file names (without extension) as names for the list elements
+    names(lst) <- tools::file_path_sans_ext(basename(files))
+    return(lst)
   })
   
-  #Uplaod D0 file
-  D0_df <- reactive({
-    inFile <- input$salesfile
-    if (is.null(inFile))
-      return(NULL)
-    
-    if (str_sub(inFile$datapath,str_length(inFile$datapath)-3,str_length(inFile$datapath)) == ".csv") {
-      D0_df <- read.csv(inFile$datapath) #, header = input$header
-    } else{
-      D0_df <- read.xlsx(inFile$datapath)
-    }
-  })
-  #All columns data
-  output$D0_file_contents <- DT::renderDataTable({
+  # observe({print( names(lst))})
+  
+  # # When the upload button is clicked, read the selected files
+  # L0_df <- eventReactive(input$upload_btn, {
+  #   req(input$L0_file)
+  #   file <- input$L0_file
+  #   
+  #   # Ensure at least one file is selected
+  #   if (is.null(file))
+  #     return(NULL)
+  #   
+  #   # Read file based on its extension
+  #   ext <- tolower(tools::file_ext(file))
+  #   
+  #   #Extract sheet name when excel file is uploaded
+  #   if(ext %in% c("xls", "xlsx")){
+  #     sheets <- excel_sheets(file)
+  #     if (c("FinalM0") %in% sheets) {
+  #       df <- read_excel(file,sheet = "FinalM0")
+  #     }else{
+  #       df <- read_excel(file)
+  #     }
+  #   }else{
+  #     
+  #     NULL
+  #   }
+  #   
+  #   # Round all numeic variable to 3 decimal places
+  #   df <- df %>% mutate(across(where(is.numeric), ~round(.x, 3)))
+  #   
+  #   if (!"Price_pval" %in% colnames(df)) {
+  #     df$Price_pval <- NA  # or provide a default value
+  #   }
+  #   
+  #   if (!"method" %in% colnames(df)) {
+  #     df$method <- "Unknown"  # Set a default method
+  #   }
+  #   
+  #   #Remove rows with all NAs
+  #   df <- df[rowSums(is.na(df)) != ncol(df), ]
+  # 
+  #   return(df)
+  #   
+  # })
+  
+  
+  
+  # Render the combined data table
+  output$combined_data <- DT::renderDataTable({
+    req(D0_df())
     DT::datatable(D0_df())
-  })
-  
-  # Do_file name 
-  DO_file_name <- reactive({
-    if(is.null(input$salesfile)){
-      return(NULL)
-    }else{
-      return(input$salesfile$name)
-    }
-  })
-  # observe({print(dir_path())})
-   
-  ############################ Trigger Script Execution ############################
-  observeEvent(input$run_process, {
-    output$process_status <- renderText("Processing...Please wait.")
-    
-    # Capture user selections from UI
-    project_root <<- dir_path()
-    Base_Path <<- project_root
-    path <<-  project_root
-    
-    print(paste("Debug: project_root =", project_root))
-    print(paste("Debug: Base_Path =", Base_Path))
-
-    # # Check if Base_Path is NULL or empty
-    # if (is.null(Base_Path) || Base_Path == "") {
-    #   stop("Error: Base_Path is empty or not set correctly.")
-    # }
-
-
-    # D0_file_path <- input$salesfile$datapath  # File path of uploaded file
-    # Extract file name with extensio
-    
-    D0_file <<-  DO_file_name() #input$salesfile$name #"KHC_Spoonables_USA_D0_modelling.csv" #input$salesfile #"KHC_Spoonables_USA_D0_modelling.csv" #input$salesfile
-    print(paste("Debug: D0_file =", D0_file))
-    
-    worktype <<- input$worktype
-    Integration_process_needed <<- input$integration_needed
-    input_type <<-   input$input_type #"Brand_Variant"
-    L0_indicator <<- input$L0_indicator
-    L1_indicator <<- input$L1_indicator
-    L2_indicator <<- input$L2_indicator
-    L3_indicator <<- input$L3_indicator
-    datafrequency <<- input$datafrequency
-    print(paste("Debug: datafrequency =", datafrequency))
-    
-    csf_period <<- as.numeric(input$csf_period)
-    CMA_input <<- 30  # Can be UI-controlled
-    NSV_input <<- 80  # Can be UI-controlled
-    restofcategory_included <<- "Yes"
-    
-    #Source required scripts
-    # print(paste("Checking file path:", paste(project_root, worktype, "/8. Codes/functions", "R_Packages.R", sep = "/")))
-    
-    source(file.path(project_root, worktype, "8. Codes/functions", "R_Packages.R"))
-    source(file.path(project_root, worktype, "8. Codes/functions", "Integrator.R"))
-    
-    # Run integration if needed
-    if (Integration_process_needed == "Yes") {
-      integrator1(project_root, Integration_process_needed, input_type, worktype)
-    }
-    
-    # Run main output process
-    source(file.path(project_root, worktype, "8. Codes/functions", "Output Main2.R"))
-    result <- Output_Main2(project_root, Integration_process_needed, input = input_type, 
-                           L0_indicator, L2_indicator, L3_indicator, L1_indicator, 
-                           datafrequency, CMA_input, NSV_input, D0_file, 
-                           restofcategory_included, worktype, csf_period)
-    # print("Calling Output_Main2 function")
-    # print(paste("Project Root:", project_root))
-    # print(paste("D0 File Path:", D0_file_path))
-    
-    
-    # Display status updates
-    output$process_output <- renderText(result)
-    output$process_status <- renderText("Process Completed Successfully!")
-    
-    
   })
   
   
   ##################################################################### Dashboard Start ###########################################################################
-  # Reactive value to store file extension
-  file_extension <- reactive({
-    
-    req(input$modelfile)
-    ext <- tools::file_ext(input$modelfile$name)
-    return(ext)
-  })
-  #Extract sheet name when excel file is uploaded
-  observeEvent(input$modelfile,{
-    if(file_extension() == "xlsx"){
-      sheets <- excel_sheets(input$modelfile$datapath)
-      updateSelectInput(session, 'sheet', choices = sheets, selected = "FinalM0")
-    }
-  })
-  #Dynamic UI for sheet selection
-  output$sheet_ui <- renderUI({
-    if(file_extension() == "xlsx"){
-      sheets <- excel_sheets(input$modelfile$datapath)
-      selectInput("sheet", "Select Sheet", choices = sheets, selected = "FinalM0")
-    }
-  })
-  
-  
-  #Read Selected Sheet data
-  L0_df <- reactive({
-    req(input$modelfile)
-    ext = file_extension()
-    if(ext == "csv"){
-      df <- read.csv(input$modelfile$datapath)
-    }else if(ext == "xlsx"){
-      df <- read_excel(input$modelfile$datapath,sheet = input$sheet)
-    }else{
-      return(NULL)
-    }
-    
-    # Round all numeic variable to 3 decimal places
-    df <- df %>% mutate(across(where(is.numeric), ~round(.x, 3)))
-    
-    if (!"Price_pval" %in% colnames(df)) {
-      df$Price_pval <- NA  # or provide a default value
-    }
-    
-    if (!"method" %in% colnames(df)) {
-      df$method <- "Unknown"  # Set a default method
-    }
-    
-    #Remove rows with all NAs
-    df <- df[rowSums(is.na(df)) != ncol(df), ]
-    
-    return(df)
-  })
+  # # Reactive value to store file extension
+  # file_extension <- reactive({
+  #   
+  #   req(input$modelfile)
+  #   ext <- tools::file_ext(input$modelfile$name)
+  #   return(ext)
+  # })
+  # #Extract sheet name when excel file is uploaded
+  # observeEvent(input$modelfile,{
+  #   if(file_extension() == "xlsx"){
+  #     sheets <- excel_sheets(input$modelfile$datapath)
+  #     updateSelectInput(session, 'sheet', choices = sheets, selected = "FinalM0")
+  #   }
+  # })
+  # #Dynamic UI for sheet selection
+  # output$sheet_ui <- renderUI({
+  #   if(file_extension() == "xlsx"){
+  #     sheets <- excel_sheets(input$modelfile$datapath)
+  #     selectInput("sheet", "Select Sheet", choices = sheets, selected = "FinalM0")
+  #   }
+  # })
+  # 
+  # 
+  # #Read Selected Sheet data
+  # L0_df <- reactive({
+  #   req(input$modelfile)
+  #   ext = file_extension()
+  #   if(ext == "csv"){
+  #     df <- read.csv(input$modelfile$datapath)
+  #   }else if(ext == "xlsx"){
+  #     df <- read_excel(input$modelfile$datapath,sheet = input$sheet)
+  #   }else{
+  #     return(NULL)
+  #   }
+  #   
+  #   # Round all numeic variable to 3 decimal places
+  #   df <- df %>% mutate(across(where(is.numeric), ~round(.x, 3)))
+  #   
+  #   if (!"Price_pval" %in% colnames(df)) {
+  #     df$Price_pval <- NA  # or provide a default value
+  #   }
+  #   
+  #   if (!"method" %in% colnames(df)) {
+  #     df$method <- "Unknown"  # Set a default method
+  #   }
+  #   
+  #   #Remove rows with all NAs
+  #   df <- df[rowSums(is.na(df)) != ncol(df), ]
+  #   
+  #   return(df)
+  # })
   
   #Select model for...
   output$modelof_ui <- renderUI({
-    req(L0_df())
-    modelfor <- c("Brand","Variant","PackType","PPG")
-    selectInput("modelof", "model selection for",choices = modelfor,selected = "Brand")
+    req(file_list())
+    modelfor <- gsub("Wtd_avg_MCV_", "", names(file_list())) #c("Brand","Variant","PackType","PPG")
+    selectInput("modelof", "model selection for",choices = modelfor,selected = modelfor[1])
   })
+  
+  
+  L0_df <- reactive({
+    
+    req(file_list(),input$modelof)
+    #Cleaned files names
+    files_names <- gsub("Wtd_avg_MCV_", "", names(file_list())) #"Brand","Variant","PackType","PPG"
+    
+    #targetinf file
+    target_file <- input$modelof
+    
+    #index of that file
+    idx <- match(target_file,files_names)
+    print(idx)
+    if (!is.na(idx)) {
+      df <- file_list()[[idx]]
+    } else {
+      print("Invalid index or empty file_list")
+      df <- NULL  # or handle the error as needed
+    }
+    
+    return(df)
+    
+  })
+  
+  
   # column_mo <- reactive({
   #   req(L0_df())
   #   input$modelof
   #   })
   
-  ###################################### Filters #####################################################
+  ## Filters
   # Check if necessary columns exist in the data
   
   
@@ -292,7 +352,7 @@ server <- function(input, output, session) {
   output$method_ui <- renderUI({
     req(L0_df())  # Ensure filtered dataset is available
     methods <- unique(na.omit(L0_df()$method))  # Remove NULLs
-    selectInput("method", "Select Method:", choices = c("All", methods), selected = "SOLS")
+    selectInput("method", "Select Method:", choices = c("All", methods), selected = "SOLS", multiple = TRUE)
   })
   
   # Numeric Filter for Distribution_elas (>=0 or NaN)
@@ -351,8 +411,8 @@ server <- function(input, output, session) {
     }
     
     # Apply Methode Filter
-    if (!is.null(input$method) && input$method != "All") {
-      df <- df[df$method %in% input$method, ]
+    if (!is.null(input$method) && !("All" %in% input$method)) {
+      df <- df[df[["method"]] %in% input$method, ]
     }
     
     # Apply Distribution_elas Filter
@@ -420,7 +480,7 @@ server <- function(input, output, session) {
     return(df)
   })
   
-  # ################ Dyanamic Adj Rsquare ##############
+  ## Dyanamic Adj Rsquare 
   output$adjrsq_ui <- renderUI({
     req(filter_df_actdist())
     
@@ -500,7 +560,7 @@ server <- function(input, output, session) {
     return(df)
   })
   
-  ##### after all filter, rename the filtred data #####
+  ## after all filter, rename the filtred data 
   final_df <- reactive({
     df <- sorted_df()
     return(df)
@@ -712,7 +772,7 @@ server <- function(input, output, session) {
     #sort the data 
     df <- df[order(df[[input$sort_by]], decreasing = TRUE), ]
     df <- df %>% mutate(across(all_of(input$x_var),~factor(.,levels=.)))
-    df <- df %>% mutate(hover_text = paste("Index:",Index,"<br>CSF:",CSF.CSF,"<br>Adj Rsq:",Adj.Rsq,"<br>AIC:",AIC))
+    df <- df %>% mutate(hover_text = paste("Index:",Index,"<br>CSF:",CSF.CSF,"<br>MCV",MCV.MCV,"<br>Adj Rsq:",Adj.Rsq,"<br>AIC:",AIC))
     
     #Extract Yellow an green color from viridis color palette
     yellow_color <- "#08519C" #viridis(256, option = "D")[256] #"#FDE725FF" "#08519C"
@@ -750,20 +810,6 @@ server <- function(input, output, session) {
       p <- plot_ly(df, x = ~get(input$x_var), y = ~get(input$y_var), type = "bar",color = ~RPIto,colors = color_list_final, hovertext=~hover_text, hoverinfo="text")
     }
     
-    # # Add smooth line
-    # if (input$add_line) {
-    #   loess_fit <- loess(df[[input$y_var]] ~ df[[input$x_var]], span = input$smooth_span)
-    #   smooth_vals <- predict(loess_fit)
-    #   p <- p %>% add_lines(y = smooth_vals, name = "Smooth Line")
-    # }
-    
-    # # Add regression line
-    # if (input$add_regression) {
-    #   lm_model <- lm(df[[input$y_var]] ~ df[[input$x_var]], data = df)
-    #   reg_vals <- predict(lm_model)
-    #   p <- p %>% add_lines(y = reg_vals, name = "Regression Line")
-    # }
-    
     # Apply plot settings
     p <- p %>% layout(title = paste(input$channel,"-",input$brand),
                       xaxis = list(title = input$x_var),
@@ -786,4 +832,123 @@ server <- function(input, output, session) {
   #   }
   # )
   ###################################################################### Dashbroad End ############################################################################
+
+  ########################################################### M1 to Result:-Sidebar start ###########################################################
+  output$toggle_ui <- renderUI({
+    actionButton("toggle", "Toggle Sidebar")
+  })
+  observeEvent(input$toggle,{
+    runjs("
+          var sidebar = document.getElementById('sidebar_1');
+          var main = document.getElementById('main_1');
+          if (sidebar.style.display === 'none') {
+            sidebar.style.display = 'block';
+            main.classList.remove('expanded-main');
+          } else {
+            sidebar.style.display = 'none';
+            main.classList.add('expanded-main');
+          }
+      ")
+  })
+  
+  # #Uplaod D0 file
+  # D0_df <- reactive({
+  #   inFile <- input$salesfile
+  #   if (is.null(inFile))
+  #     return(NULL)
+  # 
+  #   if (str_sub(inFile$datapath,str_length(inFile$datapath)-3,str_length(inFile$datapath)) == ".csv") {
+  #     D0_df <- read.csv(inFile$datapath) #, header = input$header
+  #   } else{
+  #     D0_df <- read.xlsx(inFile$datapath)
+  #   }
+  # })
+  #All columns data
+  output$D0_file_contents <- DT::renderDataTable({
+    DT::datatable(D0_df())
+  })
+
+  # D0_file name 
+  D0_file_name <- reactive({
+    req(D0_df())
+    if(is.null(input$D0_file)){
+      return(NULL)
+    }else{
+      return(basename(input$D0_file))
+    }
+  })
+  # observe({print(D0_file_name())})
+  
+  
+  ## Trigger Script Execution 
+  observeEvent(input$run_process, {
+    output$process_status <- renderText("Processing...Please wait.")
+    
+    # Capture user selections from UI
+    project_root <<- dir_path()
+    Base_Path <<- project_root
+    path <<-  project_root
+    
+    print(paste("Debug: project_root =", project_root))
+    print(paste("Debug: Base_Path =", Base_Path))
+    
+    # # Check if Base_Path is NULL or empty
+    # if (is.null(Base_Path) || Base_Path == "") {
+    #   stop("Error: Base_Path is empty or not set correctly.")
+    # }
+    
+    
+    # D0_file_path <- input$salesfile$datapath  # File path of uploaded file
+    # Extract file name with extensio
+    
+    D0_file <<-  D0_file_name() #input$salesfile$name #"KHC_Spoonables_USA_D0_modelling.csv" #input$salesfile #"KHC_Spoonables_USA_D0_modelling.csv" #input$salesfile
+    print(paste("Debug: D0_file =", D0_file))
+    
+    worktype <<- input$worktype
+    Integration_process_needed <<- input$integration_needed
+    input_type <<-   input$input_type #"Brand_Variant"
+    L0_indicator <<- input$L0_indicator
+    L1_indicator <<- input$L1_indicator
+    L2_indicator <<- input$L2_indicator
+    L3_indicator <<- input$L3_indicator
+    datafrequency <<- input$datafrequency
+    print(paste("Debug: datafrequency =", datafrequency))
+    
+    csf_period <<- as.numeric(input$csf_period)
+    CMA_input <<- 30  # Can be UI-controlled
+    NSV_input <<- 80  # Can be UI-controlled
+    restofcategory_included <<- "Yes"
+    
+    #Source required scripts
+    # print(paste("Checking file path:", paste(project_root, worktype, "/8. Codes/functions", "R_Packages.R", sep = "/")))
+    
+    source(file.path(project_root, worktype, "8. Codes/functions", "R_Packages.R"))
+    source(file.path(project_root, worktype, "8. Codes/functions", "Integrator.R"))
+    
+    # Run integration if needed
+    if (Integration_process_needed == "Yes") {
+      integrator1(project_root, Integration_process_needed, input_type, worktype)
+    }
+    
+    # Run main output process
+    source(file.path(project_root, worktype, "8. Codes/functions", "Output Main2.R"))
+    result <- Output_Main2(project_root, Integration_process_needed, input = input_type, 
+                           L0_indicator, L2_indicator, L3_indicator, L1_indicator, 
+                           datafrequency, CMA_input, NSV_input, D0_file, 
+                           restofcategory_included, worktype, csf_period)
+    # print("Calling Output_Main2 function")
+    # print(paste("Project Root:", project_root))
+    # print(paste("D0 File Path:", D0_file_path))
+    
+    
+    # Display status updates
+    output$process_output <- renderText(result)
+    output$process_status <- renderText("Process Completed Successfully!")
+
+  })
+  
+
+  ########################################################### M1 to Result:-Sidebar end ################################################################
+  
 }
+
