@@ -30,14 +30,6 @@ server <- function(input, output, session) {
       # dir_path(parseDirPath(roots, input$select_dir))
     }
   })
-  # # Update `dir_path` when user selects a directory
-  # observeEvent(input$select_dir, {
-  #   if (is.null(input$select_dir) || length(input$select_dir) == 0) {
-  #     dir_path(getwd())  # Reset to current working directory if canceled
-  #   } else {
-  #     dir_path(parseDirPath(roots, input$select_dir))  # Update path when a folder is selected
-  #   }
-  # })  # This ensures that even when canceled, it still runs
 
   # Display selected directory
   output$selected_dir <- renderPrint({
@@ -49,7 +41,6 @@ server <- function(input, output, session) {
   
   ########################################################### Move/Copy Fils Box ##################################################
   # volumes <-  dir_path()#roots # c(Home = normalizePath("~"), Projects = getwd())
-  
   observe({
     req(dir_path())
     roots <- c(MyVolume = dir_path())
@@ -101,8 +92,6 @@ server <- function(input, output, session) {
     output$message <- renderText({ "" })
   })
   
-  
-  
   ################ file uploading #############
   # Define the directory that contains Do file
   D0_dir <- reactive({file.path(dir_path(),"Onboard/2. D0" )}) #"Onboard/4. Modelling/writedata/Selected models"
@@ -125,6 +114,7 @@ server <- function(input, output, session) {
   
   # When the upload button is clicked, read the selected files
   D0_df <- eventReactive(input$upload_btn, {
+    print(input$D0_file)
     req(input$D0_file)
     file <- input$D0_file
     
@@ -136,11 +126,10 @@ server <- function(input, output, session) {
     ext <- tolower(tools::file_ext(file))
     if (ext == "csv") {
       D0_df <- read.csv(file)
-    } else if (ext %in% c("xls", "xlsx")) {
-      NULL #read.xlsx(file)
     } else {
       NULL
     }
+
     return(D0_df)
     
   })
@@ -169,76 +158,51 @@ server <- function(input, output, session) {
   # When the upload button is clicked, read each selected file separately
   file_list <- eventReactive(input$upload_btn,{
     req(input$L0_file)
-    files <- input$L0_file
+    files = input$L0_file
     # print(files)
-    lst <- lapply(files, function(file){
+    
+    preprocess_fun <- function(file){
       # Read file based on its extension
       ext <- tolower(tools::file_ext(file))
       # Extract sheet name when excel file is uploaded
-        if(ext %in% c("xls", "xlsx")){
-          sheets <- excel_sheets(file)
-          if (c("FinalM0") %in% sheets) {
-            df <- read_excel(file,sheet = "FinalM0")
-          }else{
-            df <- read_excel(file)
+      if(ext %in% c("xls", "xlsx")){
+        sheets <- excel_sheets(file)
+        if (c("FinalM0") %in% sheets) {
+          df <- read_excel(file,sheet = "FinalM0")
+          # Round all numeric variable to 3 decimal places
+          df <- df %>% mutate(across(where(is.numeric), ~round(.x, 3)))
+
+          if (!"Price_pval" %in% colnames(df)) {
+            df$Price_pval <- NA  # or provide a default value
           }
+
+          if (!"method" %in% colnames(df)) {
+            df$method <- "Unknown"  # Set a default method
+          }
+
+          #Remove rows with all NAs
+          df <- df[rowSums(is.na(df)) != ncol(df), ]
+          
         }else{
-          NULL
+           NULL
         }
+      }else{
+         NULL
+      }
+      
       # print(df)
       return(df)
-    })
+    }
+    
+    lst <- lapply(files, preprocess_fun)
+    
+    files_names <- gsub("Wtd_avg_MCV_", "", tools::file_path_sans_ext(basename(files))) #"Brand","Variant","PackType","PPG"
+    
     # Use file names (without extension) as names for the list elements
-    names(lst) <- tools::file_path_sans_ext(basename(files))
+    lst <- setNames(lst,files_names)    #tools::file_path_sans_ext(basename(files))
     return(lst)
   })
-  
-  # observe({print( names(lst))})
-  
-  # # When the upload button is clicked, read the selected files
-  # L0_df <- eventReactive(input$upload_btn, {
-  #   req(input$L0_file)
-  #   file <- input$L0_file
-  #   
-  #   # Ensure at least one file is selected
-  #   if (is.null(file))
-  #     return(NULL)
-  #   
-  #   # Read file based on its extension
-  #   ext <- tolower(tools::file_ext(file))
-  #   
-  #   #Extract sheet name when excel file is uploaded
-  #   if(ext %in% c("xls", "xlsx")){
-  #     sheets <- excel_sheets(file)
-  #     if (c("FinalM0") %in% sheets) {
-  #       df <- read_excel(file,sheet = "FinalM0")
-  #     }else{
-  #       df <- read_excel(file)
-  #     }
-  #   }else{
-  #     
-  #     NULL
-  #   }
-  #   
-  #   # Round all numeic variable to 3 decimal places
-  #   df <- df %>% mutate(across(where(is.numeric), ~round(.x, 3)))
-  #   
-  #   if (!"Price_pval" %in% colnames(df)) {
-  #     df$Price_pval <- NA  # or provide a default value
-  #   }
-  #   
-  #   if (!"method" %in% colnames(df)) {
-  #     df$method <- "Unknown"  # Set a default method
-  #   }
-  #   
-  #   #Remove rows with all NAs
-  #   df <- df[rowSums(is.na(df)) != ncol(df), ]
-  # 
-  #   return(df)
-  #   
-  # })
-  
-  
+  # observe({print(names(file_list()))})
   
   # Render the combined data table
   output$combined_data <- DT::renderDataTable({
@@ -248,78 +212,85 @@ server <- function(input, output, session) {
   
   
   ##################################################################### Dashboard Start ###########################################################################
-  # # Reactive value to store file extension
-  # file_extension <- reactive({
-  #   
-  #   req(input$modelfile)
-  #   ext <- tools::file_ext(input$modelfile$name)
-  #   return(ext)
-  # })
-  # #Extract sheet name when excel file is uploaded
-  # observeEvent(input$modelfile,{
-  #   if(file_extension() == "xlsx"){
-  #     sheets <- excel_sheets(input$modelfile$datapath)
-  #     updateSelectInput(session, 'sheet', choices = sheets, selected = "FinalM0")
-  #   }
-  # })
-  # #Dynamic UI for sheet selection
-  # output$sheet_ui <- renderUI({
-  #   if(file_extension() == "xlsx"){
-  #     sheets <- excel_sheets(input$modelfile$datapath)
-  #     selectInput("sheet", "Select Sheet", choices = sheets, selected = "FinalM0")
-  #   }
-  # })
-  # 
-  # 
-  # #Read Selected Sheet data
-  # L0_df <- reactive({
-  #   req(input$modelfile)
-  #   ext = file_extension()
-  #   if(ext == "csv"){
-  #     df <- read.csv(input$modelfile$datapath)
-  #   }else if(ext == "xlsx"){
-  #     df <- read_excel(input$modelfile$datapath,sheet = input$sheet)
-  #   }else{
-  #     return(NULL)
-  #   }
-  #   
-  #   # Round all numeic variable to 3 decimal places
-  #   df <- df %>% mutate(across(where(is.numeric), ~round(.x, 3)))
-  #   
-  #   if (!"Price_pval" %in% colnames(df)) {
-  #     df$Price_pval <- NA  # or provide a default value
-  #   }
-  #   
-  #   if (!"method" %in% colnames(df)) {
-  #     df$method <- "Unknown"  # Set a default method
-  #   }
-  #   
-  #   #Remove rows with all NAs
-  #   df <- df[rowSums(is.na(df)) != ncol(df), ]
-  #   
-  #   return(df)
-  # })
-  
   #Select model for...
   output$modelof_ui <- renderUI({
     req(file_list())
     modelfor <- gsub("Wtd_avg_MCV_", "", names(file_list())) #c("Brand","Variant","PackType","PPG")
     selectInput("modelof", "model selection for",choices = modelfor,selected = modelfor[1])
   })
+  # observe({print(input$L0_file)})
+  
+
+  ## median work
+  median_df <- reactive({
+    
+    req(file_list)
+    
+    files <-  input$L0_file
+    # print(files)
+    median_fun <- function(file){
+      # Read file based on its extension
+      ext <- tolower(tools::file_ext(file))
+      # Extract sheet name when excel file is uploaded
+      if(ext %in% c("xls", "xlsx")){
+        sheets <- excel_sheets(file)
+        if ("median" %in% sheets) {
+          df <- read_excel(file,sheet = "median")
+        }else{
+          #If median sheet does not exist
+          df <- read_excel(file,sheet = "FinalM0")
+          df <- df %>%
+            mutate(selectedmodels = as.character(selectedmodels)) %>%  #Convert to character
+            group_by(Channel, !!sym(input$modelof)) %>%
+            mutate(median_val = median(CSF.CSF, na.rm=TRUE)) %>%
+            ungroup() %>%
+            mutate(selectedmodels = ifelse((selectedmodels =="1" ) & (CSF.CSF == median_val), "Yes", selectedmodels))
+            # select(-median_val) #remove temp column
+          
+          # Extract rows where selectedmodels == "Yes"
+          df <- df %>% filter(selectedmodels == "Yes")
+          
+          # Load existing workbook or create a new one
+          wb <- loadWorkbook(file)
+          addWorksheet(wb, "median")
+          writeData(wb, "median", df)
+          
+          # Save changes to the same file
+          saveWorkbook(wb, file, overwrite = TRUE)
+          print("✅ 'median' sheet added successfully.")
+        }
+        return(df)
+        
+      }else{
+        return(NULL)
+      }
+    }
+    
+    lst <- lapply(files, median_fun)
+    
+    files_names <- gsub("Wtd_avg_MCV_", "", tools::file_path_sans_ext(basename(files))) #"Brand","Variant","PackType","PPG"
+    
+    # Use file names (without extension) as names for the list elements
+    lst <- setNames(lst,files_names)    #tools::file_path_sans_ext(basename(files))
+    
+    return(lst)
+    
+  })
+  
+  
   
   
   L0_df <- reactive({
     
     req(file_list(),input$modelof)
     #Cleaned files names
-    files_names <- gsub("Wtd_avg_MCV_", "", names(file_list())) #"Brand","Variant","PackType","PPG"
+    files_names <- names(file_list()) #"Brand","Variant","PackType","PPG"
     
     #targetinf file
     target_file <- input$modelof
     
     #index of that file
     idx <- match(target_file,files_names)
-    print(idx)
     if (!is.na(idx)) {
       df <- file_list()[[idx]]
     } else {
@@ -331,16 +302,14 @@ server <- function(input, output, session) {
     
   })
   
+  # ###Create median work
+  # reactive()
   
-  # column_mo <- reactive({
-  #   req(L0_df())
-  #   input$modelof
-  #   })
+  
   
   ## Filters
   # Check if necessary columns exist in the data
-  
-  
+
   # Dynamic Price_pval Filte
   output$price_pval_ui <- renderUI({
     req(L0_df())  # Ensure filtered dataset is available
@@ -578,60 +547,7 @@ server <- function(input, output, session) {
   observe({
     updateSelectizeInput(session, "select_m", choices = final_df()$Index, server = TRUE)
   })
-  
-  
-  # modified_df <- eventReactive(input$save_bttn,{
-  #   df <- final_df()
-  #   df$selectedmodels <- as.character(df$selectedmodels)
-  #   
-  #   selected_id <- as.numeric(input$select_m)
-  #   
-  #   df[(df$Index == selected_id),"selectedmodels"] <- "Yes"
-  #   return(df)
-  # })
-  # 
-  # # output$unsavebttn_ui <- renderUI({
-  # #   actionButton("unsave_bttn","Reset selected model")
-  # # })
-  # # modified_df <- eventReactive(input$unsave_bttn,{
-  # #   selected_id <- as.numeric(input$select_m)
-  # #   df <- modified_df()
-  # #   df[(df$Index == selected_id),"selectedmodels"] <- 1
-  # #   
-  # # })
-  
-  # # Save and reset button
-  # output$savebttn_ui <- renderUI({
-  #   tagList(
-  #     actionButton("save_bttn","Save selected model"),
-  #     actionButton("unsave_bttn","Reset selected model",icon = icon("undo"))
-  #   )
-  # })
-  
-  #Reactive Data base to store selection
-  # modified_df <- reactiveVal(NULL)  # start as a null
-  
-  # #Keep updating modified_df with final_df
-  # observe({
-  #   df <- final_df()
-  #   req(df)
-  #   modified_df(df) #Keep updating modified_df with final_df
-  # })
-  
-  # # Save Selected MOdel
-  # observeEvent(input$save_bttn,{
-  #   req(input$select_m)
-  #   df <- final_df()
-  #   
-  #   df$selectedmodels <- as.character(df$selectedmodels)
-  #   
-  #   selected_id <- as.numeric(input$select_m)
-  #   
-  #   if(!is.null(selected_id) && !is.na(selected_id) && (selected_id %in% df$Index)){
-  #     df[(df$Index == selected_id),"selectedmodels"] <- "Yes"
-  #   }
-  #   modified_df(df)
-  # })
+
   
   modelselection_df <- reactive({
     req(final_df())
@@ -693,38 +609,6 @@ server <- function(input, output, session) {
     
   })
   
-  
-  # # Reset Selected Model
-  # observeEvent(input$unsave_bttn,{
-  #   req(input$select_m)
-  #   df <- final_df()
-  #   # df$selectedmodels <- as.character(df$selectedmodels)
-  #   selected_id <- as.numeric(input$select_m)
-  #   
-  #   # print(selected_id)
-  #   # print(sum(is.na(df$Index)))
-  #   # print(sum(df$Index == selected_id, na.rm = TRUE))
-  #   
-  #   
-  #   if(!is.null(selected_id) && !is.na(selected_id) && (selected_id %in% df$Index)){
-  #     df[(df$Index == selected_id),"selectedmodels"] <- 1
-  #   }
-  #   modified_df(df)
-  #   
-  #   # Reset dropdown selection
-  #   updateSelectInput(session, "select_m", selected = 0)
-  # })
-  
-  # observeEvent(input$unsave_bttn,{
-  #   updateSelectInput(session, 'unsave_bttn', selected = character(1))
-  # })
-  
-  
-  # Render uploaded data table
-  # output$L0_file_contents <- renderDT({
-  #   req(modified_df())
-  #   datatable(modified_df(), options = list(scrollX = TRUE))
-  # })
   
   output$L0_file_filtered <- DT::renderDataTable({
     req(modelselection_df())

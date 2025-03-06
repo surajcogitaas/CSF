@@ -182,18 +182,7 @@ ui <- fluidPage(
                               fluidRow(
                                 column(3,
                                        box(title = "Controls", width = 12, status = "primary", solidHeader = TRUE,collapsible = TRUE,
-                                           
-                                           # fileInput('modelfile', "Upload L0 File", 
-                                           #           accept = c(
-                                           #             'text/csv',
-                                           #             'text/comma-separated-values',
-                                           #             'text/tab-separated-values',
-                                           #             'text/plain',
-                                           #             '.csv',
-                                           #             '.xlsx'
-                                           #           )),
-                                           # uiOutput("sheet_ui"),  # Dynamic sheet selection
-                                           
+                                    
                                            # Multi-select dropdown for files; choices will be updated from the reactive directory
                                            selectInput("D0_file", "Select D0 File", choices = NULL),
                                            
@@ -216,12 +205,6 @@ ui <- fluidPage(
                                                         choices = c("Scatter Plot", "Box Plot", "Bar Plot"), selected = "Bar Plot"),
                                            
                                            
-                                           # checkboxInput("add_line", "Add Smooth Line", value = FALSE),
-                                           # sliderInput("smooth_span", "Smooth Span:", min = 0, max = 1, value = 0.5, step = 0.1),
-                                           
-                                           # checkboxInput("add_regression", "Add Regression Line", value = FALSE),
-                                           
-                                           # textInput("plot_title", "Plot Title:", value = "Interactive Plot"),
                                            downloadButton("download_file1", "Download File")
                                        ),),
                                 column(9,
@@ -431,31 +414,6 @@ ui <- fluidPage(
       title = "temp"
       
     ),
-    # tabPanel(
-    #   # title="Tab 4",
-    #   # Add browse button for directory selection
-    #   # shinyDirButton("select_dir", "Select Project Directory", "Select a directory"),
-    #   # dropdown(
-    #   #   shinyDirButton("select_dir", "Select Project Directory", "Select a directory"),
-    #   #   
-    #   # )
-    # 
-    # ),
-    # tabPanel(
-    #   # Display selected directory
-    #   # h4("Selected Directory:"),
-    #   verbatimTextOutput("selected_dir")
-    # )
-  
-    # selected_dir <- "C:/Users/Suraj/OneDrive - CogitaasAVA/Desktop",
-    
-    # div(
-    #   style = "position:absolute; top:20px; right:20px; display:flex; align-items:center; gap:10px",
-    #   shinyDirButton("select_dir", "Select Project Directory", "Select a directory"),
-    #   br(),
-    #   verbatimTextOutput("selected_dir"),
-    # ),
-    
     
   )
 )
