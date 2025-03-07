@@ -114,18 +114,18 @@ server <- function(input, output, session) {
   
   # When the upload button is clicked, read the selected files
   D0_df <- eventReactive(input$upload_btn, {
-    print(input$D0_file)
+    # print(input$D0_file)
     req(input$D0_file)
-    file <- input$D0_file
+    file_1 <- input$D0_file
     
     # Ensure at least one file is selected
-    if (is.null(file))
+    if (is.null(file_1))
       return(NULL)
     
     # Read each file based on its extension
-    ext <- tolower(tools::file_ext(file))
+    ext <- tolower(tools::file_ext(file_1))
     if (ext == "csv") {
-      D0_df <- read.csv(file)
+      D0_df <- read.csv(file_1)
     } else {
       NULL
     }
@@ -161,14 +161,14 @@ server <- function(input, output, session) {
     files = input$L0_file
     # print(files)
     
-    preprocess_fun <- function(file){
+    preprocess_fun <- function(file_1){
       # Read file based on its extension
-      ext <- tolower(tools::file_ext(file))
+      ext <- tolower(tools::file_ext(file_1))
       # Extract sheet name when excel file is uploaded
       if(ext %in% c("xls", "xlsx")){
-        sheets <- excel_sheets(file)
+        sheets <- excel_sheets(file_1)
         if (c("FinalM0") %in% sheets) {
-          df <- read_excel(file,sheet = "FinalM0")
+          df <- read_excel(file_1,sheet = "FinalM0")
           # Round all numeric variable to 3 decimal places
           df <- df %>% mutate(across(where(is.numeric), ~round(.x, 3)))
 
@@ -219,44 +219,59 @@ server <- function(input, output, session) {
     selectInput("modelof", "model selection for",choices = modelfor,selected = modelfor[1])
   })
   # observe({print(input$L0_file)})
-  
 
+  # check <- reactive({
+  #   print(input$L0_file)
+  # })
+  # observe({print(check())})
+  
   ## median work
   median_df <- reactive({
     
-    req(file_list)
+    req(file_list(),input$upload_btn)
     
     files <-  input$L0_file
-    # print(files)
-    median_fun <- function(file){
+    
+    mid_value <- function(clm, na.rm = FALSE){
+      if (na.rm) clm <- na.omit(clm)
+      sort_clm <- sort(clm, na.last = NA)
+      n <- length(sort_clm)
+      if(n==0) return(NA)
+      mid_idx <- round(n/2)
+      mid_pnt <- sort_clm[mid_idx]
+      return(mid_pnt)
+    }
+    
+    median_fun <- function(file_1){
       # Read file based on its extension
-      ext <- tolower(tools::file_ext(file))
+      ext <- tolower(tools::file_ext(file_1))
       # Extract sheet name when excel file is uploaded
       if(ext %in% c("xls", "xlsx")){
-        sheets <- excel_sheets(file)
+        sheets <- excel_sheets(file_1)
         if ("median" %in% sheets) {
-          df <- read_excel(file,sheet = "median")
+          df <- read_excel(file_1,sheet = "median")
         }else{
           #If median sheet does not exist
-          df <- read_excel(file,sheet = "FinalM0")
+          df <- read_excel(file_1,sheet = "FinalM0")
           df <- df %>%
             mutate(selectedmodels = as.character(selectedmodels)) %>%  #Convert to character
-            group_by(Channel, !!sym(input$modelof)) %>%
-            mutate(median_val = median(CSF.CSF, na.rm=TRUE)) %>%
+            group_by(Channel,	Brand,	Variant,	PackType,	PPG) %>%
+            reframe(median_val = mid_value(CSF.CSF,na.rm = TRUE)) %>% 
+            left_join(df, by=c("Channel",	"Brand",	"Variant",	"PackType",	"PPG")) %>%
             ungroup() %>%
-            mutate(selectedmodels = ifelse((selectedmodels =="1" ) & (CSF.CSF == median_val), "Yes", selectedmodels))
-            # select(-median_val) #remove temp column
+            mutate(selectedmodels = ifelse((selectedmodels =="1" ) & (CSF.CSF == median_val), "Yes", selectedmodels)) %>% 
+            select(-median_val) %>%
+            select(names(df))
           
           # Extract rows where selectedmodels == "Yes"
           df <- df %>% filter(selectedmodels == "Yes")
-          
           # Load existing workbook or create a new one
-          wb <- loadWorkbook(file)
+          wb <- loadWorkbook(file_1)
           addWorksheet(wb, "median")
           writeData(wb, "median", df)
-          
+
           # Save changes to the same file
-          saveWorkbook(wb, file, overwrite = TRUE)
+          saveWorkbook(wb, file_1, overwrite = TRUE)
           print("✅ 'median' sheet added successfully.")
         }
         return(df)
@@ -277,6 +292,7 @@ server <- function(input, output, session) {
     
   })
   
+  observe({median_df()})
   
   
   
@@ -321,7 +337,7 @@ server <- function(input, output, session) {
   output$method_ui <- renderUI({
     req(L0_df())  # Ensure filtered dataset is available
     methods <- unique(na.omit(L0_df()$method))  # Remove NULLs
-    selectInput("method", "Select Method:", choices = c("All", methods), selected = "SOLS", multiple = TRUE)
+    selectInput("method", "Select Method:", choices = c("All",methods), selected = NULL, multiple = TRUE)
   })
   
   # Numeric Filter for Distribution_elas (>=0 or NaN)
@@ -640,9 +656,9 @@ server <- function(input, output, session) {
       paste(tools::file_path_sans_ext(input$modelfile$name),"_selected models",".xlsx",sep = "") 
     },
     
-    content = function(file) {
+    content = function(file_1) {
       req(selected_models_df())
-      write.xlsx(selected_models_df(), file, sheetName = input$sheet, overwrite = TRUE, rowNames=FALSE)
+      write.xlsx(selected_models_df(), file_1, sheetName = input$sheet, overwrite = TRUE, rowNames=FALSE)
     }
   )
   
@@ -711,8 +727,8 @@ server <- function(input, output, session) {
   # # Download Plot
   # output$download_plot <- downloadHandler(
   #   filename = function() { paste(input$plot_type, "plot.html", sep = "_") },
-  #   content = function(file) { 
-  #     htmlwidgets::saveWidget(plot_reactive(), file) 
+  #   content = function(file_1) { 
+  #     htmlwidgets::saveWidget(plot_reactive(), file_1) 
   #   }
   # )
   ###################################################################### Dashbroad End ############################################################################
