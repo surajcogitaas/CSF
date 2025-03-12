@@ -226,75 +226,169 @@ server <- function(input, output, session) {
   # observe({print(check())})
   
   ## median work
+  # median_df <- reactive({
+  #   
+  #   req(file_list(),input$upload_btn)
+  #   
+  #   files <-  input$L0_file
+  #   clm=c(1)
+  #   mid_value <- function(clm, na.rm = FALSE){
+  #     if (na.rm) clm <- na.omit(clm)
+  #     sort_clm <- sort(clm, na.last = NA)
+  #     n <- length(sort_clm)
+  #     if(n==0) return(NA)
+  #     mid_idx <- ceiling(n/2)
+  #     mid_pnt <- sort_clm[mid_idx]
+  #     return(mid_pnt)
+  #   }
+  #   median_fun <- function(file_1){
+  #     # Read file based on its extension
+  #     ext <- tolower(tools::file_ext(file_1))
+  #     # Extract sheet name when excel file is uploaded
+  #     if(ext %in% c("xls", "xlsx")){
+  #       sheets <- excel_sheets(file_1)
+  #       if ("median" %in% sheets) {
+  #         df <- read_excel(file_1,sheet = "median")
+  #         
+  #       }else{
+  #         #If median sheet does not exist
+  #         df <- read_excel(file_1,sheet = "FinalM0")
+  #         df <- df %>%
+  #           mutate(selectedmodels = as.character(selectedmodels)) %>%  #Convert to character
+  #           group_by(Channel,	Brand,	Variant,	PackType,	PPG) %>%
+  #           reframe(median_val = mid_value(CSF.CSF,na.rm = TRUE)) %>% 
+  #           left_join(df, by=c("Channel",	"Brand",	"Variant",	"PackType",	"PPG")) %>%
+  #           ungroup() %>%
+  #           mutate(selectedmodels = ifelse((selectedmodels =="1" ) & (CSF.CSF == median_val), "Yes", selectedmodels)) %>% 
+  #           select(-median_val) %>%
+  #           select(names(df))
+  #         
+  #         # Extract rows where selectedmodels == "Yes"
+  #         df <- df %>% filter(selectedmodels == "Yes")
+  #         # Load existing workbook or create a new one
+  #         wb <- loadWorkbook(file_1)
+  #         addWorksheet(wb, "median")
+  #         writeData(wb, "median", df)
+  # 
+  #         # Save changes to the same file
+  #         saveWorkbook(wb, file_1, overwrite = TRUE)
+  #         print("✅ 'median' sheet added successfully.")
+  #       }
+  #       return(df)
+  #       
+  #     }else{
+  #       return(data.frame())
+  #     }
+  #   }
+  #   
+  #   lst <- lapply(files, median_fun)
+  #   
+  #   files_names <- gsub("Wtd_avg_MCV_", "", tools::file_path_sans_ext(basename(files))) #"Brand","Variant","PackType","PPG"
+  #   
+  #   # Use file names (without extension) as names for the list elements
+  #   lst <- setNames(lst,files_names)    #tools::file_path_sans_ext(basename(files))
+  #   
+  #   return(lst)
+  #   
+  # })
+  
   median_df <- reactive({
     
-    req(file_list(),input$upload_btn)
+    req(file_list(), input$upload_btn, input$L0_file)  # Ensure inputs exist
     
-    files <-  input$L0_file
+    files <- input$L0_file
+    if (length(files) == 0) return(NULL)  # Handle empty file list
     
-    mid_value <- function(clm, na.rm = FALSE){
+    mid_value <- function(clm, na.rm = FALSE) {
       if (na.rm) clm <- na.omit(clm)
       sort_clm <- sort(clm, na.last = NA)
       n <- length(sort_clm)
-      if(n==0) return(NA)
-      mid_idx <- round(n/2)
-      mid_pnt <- sort_clm[mid_idx]
-      return(mid_pnt)
+      if (n == 0) return(NA)
+      return(sort_clm[ceiling(n / 2)])
     }
     
-    median_fun <- function(file_1){
-      # Read file based on its extension
+    median_fun <- function(file_1) {
       ext <- tolower(tools::file_ext(file_1))
-      # Extract sheet name when excel file is uploaded
-      if(ext %in% c("xls", "xlsx")){
+      
+      if (ext %in% c("xls", "xlsx")) {
+        
         sheets <- excel_sheets(file_1)
+        df <- read_excel(file_1, sheet = "FinalM0")
+        
         if ("median" %in% sheets) {
-          df <- read_excel(file_1,sheet = "median")
-        }else{
-          #If median sheet does not exist
-          df <- read_excel(file_1,sheet = "FinalM0")
-          df <- df %>%
-            mutate(selectedmodels = as.character(selectedmodels)) %>%  #Convert to character
-            group_by(Channel,	Brand,	Variant,	PackType,	PPG) %>%
-            reframe(median_val = mid_value(CSF.CSF,na.rm = TRUE)) %>% 
-            left_join(df, by=c("Channel",	"Brand",	"Variant",	"PackType",	"PPG")) %>%
-            ungroup() %>%
-            mutate(selectedmodels = ifelse((selectedmodels =="1" ) & (CSF.CSF == median_val), "Yes", selectedmodels)) %>% 
-            select(-median_val) %>%
-            select(names(df))
+          m_df <- read_excel(file_1, sheet = "median")
+          # return(list(full_df = df, filtered_df = df))  # Return the same df twice
+        } else{
           
-          # Extract rows where selectedmodels == "Yes"
-          df <- df %>% filter(selectedmodels == "Yes")
-          # Load existing workbook or create a new one
+          # df <- read_excel(file_1, sheet = "FinalM0")
+          
+          m_df <- df %>% mutate(selectedmodels = as.character(selectedmodels)) %>%
+            group_by(Channel, Brand, Variant, PackType, PPG) %>%
+            reframe(median_val = mid_value(CSF.CSF, na.rm = TRUE)) %>%
+            left_join(df, by = c("Channel", "Brand", "Variant", "PackType", "PPG")) %>%
+            ungroup() %>%
+            mutate(selectedmodels = ifelse(selectedmodels == "1" & CSF.CSF == median_val, "Yes", selectedmodels)) %>%
+            select(-median_val) %>%
+            select(names(df)) %>% 
+            filter(selectedmodels == "Yes")
+          
+          # df_yes <- df %>% filter(selectedmodels == "Yes")  # Create filtered dataframe
+          
           wb <- loadWorkbook(file_1)
           addWorksheet(wb, "median")
-          writeData(wb, "median", df)
-
-          # Save changes to the same file
+          writeData(wb, "median", df_yes)
           saveWorkbook(wb, file_1, overwrite = TRUE)
-          print("✅ 'median' sheet added successfully.")
+          
+          print("✅ 'median' sheet added successfully.") 
         }
-        return(df)
         
-      }else{
-        return(NULL)
+        # return(list(full_df = df, median_df = m_df))  # Return both versions
+        # list(full_df = df, median_df = m_df)  # Return both versions
       }
+      
+      ## IF ALL COMBINATION CONTAIN 1'S THEN PUT "Yes" TO CORRESPONDING MEDIAN
+      df <- df %>% 
+        dplyr::select(everything()) %>% 
+        mutate(initial_val = case_when(
+          index %in% m_df$index ~ 'median'
+          TRUE ~ 1
+        )) %>% 
+        mutate()
+      
+      
+      return(list(full_df = df, median_df = m_df))
     }
     
     lst <- lapply(files, median_fun)
+    files_names <- gsub("Wtd_avg_MCV_", "", tools::file_path_sans_ext(basename(files)))
+    lst <- setNames(lst, files_names)
     
-    files_names <- gsub("Wtd_avg_MCV_", "", tools::file_path_sans_ext(basename(files))) #"Brand","Variant","PackType","PPG"
-    
-    # Use file names (without extension) as names for the list elements
-    lst <- setNames(lst,files_names)    #tools::file_path_sans_ext(basename(files))
-    
-    return(lst)
-    
+    return(lst)  # List of lists: each element has full_df and filtered_df
   })
   
-  observe({median_df()})
+  observe({
+    print(median_df()$Brand$full_df)
+  })
   
-  
+  # observe({
+  #   req(input$L0_file)
+  #   # print(tools::file_path_sans_ext(basename(input$L0_file[1])))
+  #   # file_n <- gsub("Wtd_avg_MCV_", "",tools::file_path_sans_ext(basename(input$L0_file)))
+  #   # print(file_n)
+  #   # print(median_df()[[file_n]]$full_df)
+  #   file_names <- gsub("Wtd_avg_MCV_", "",tools::file_path_sans_ext(basename(input$L0_file)))
+  #   files <- input$L0_file
+  # 
+  #   medianassigning_fun <- function(file){
+  #     df <- 
+  #   }
+  #   # req(input$L0_indicator)
+  #   # print(input$L0_indicator)
+  #   # print(input$L1_indicator)
+  #   # print(input$L2_indicator)
+  #   # print(input$L3_indicator)
+  #   
+  #   })
   
   L0_df <- reactive({
     
