@@ -347,16 +347,26 @@ server <- function(input, output, session) {
       }
       
       ## IF ALL COMBINATION CONTAIN 1'S THEN PUT "Yes" TO CORRESPONDING MEDIAN
-      df <- df %>% 
+      df_with_m <- df %>% 
         dplyr::select(everything()) %>% 
+        mutate(across(c(selectedmodels),as.character)) %>%  # Convert necessary columns to character
         mutate(initial_val = case_when(
-          index %in% m_df$index ~ 'median'
-          TRUE ~ 1
+          Index %in% m_df$Index ~ 'median',
+          TRUE ~ "1"
         )) %>% 
-        mutate()
+        group_by(across(all_of(c("Channel", "Brand", "Variant", "PackType", "PPG")))) %>% 
+        mutate(
+          flag_all_ones = all(selectedmodels == "1"),  # Check if all values in group are "1"
+          selectedmodels = case_when(
+            flag_all_ones & initial_val == "median" ~ "Yes",  # If all 1s, set median row to Yes
+            TRUE ~ selectedmodels  # Otherwise, keep original values
+          )
+        ) %>% 
+        select(-flag_all_ones) %>% 
+        ungroup()
       
       
-      return(list(full_df = df, median_df = m_df))
+      return(list(full_df = df_with_m, median_df = m_df))
     }
     
     lst <- lapply(files, median_fun)
@@ -366,9 +376,31 @@ server <- function(input, output, session) {
     return(lst)  # List of lists: each element has full_df and filtered_df
   })
   
-  observe({
-    print(median_df()$Brand$full_df)
+  L0_table <- reactive({
+    req(!(is.na(input$L0_indicator)))
+    df <- median_df()[[input$L0_indicator]]$full_df
   })
+  
+  L2_table <- reactive({
+    req(!(is.na(input$L2_indicator)))
+    df <- median_df()[[input$L2_indicator]]$full_df
+  })
+
+  L3_table <- reactive({
+    req(!(is.na(input$L3_indicator)))
+    df <- median_df()[[input$L3_indicator]]$full_df
+  })
+    
+  # observe(
+  #   print(input$L0_indicator)
+  # )
+  
+  # observe({
+  #   print(median_df()[[input$L0_indicator]]$full_df)
+  # })
+  # observe({
+  #   View(median_df()$Brand$full_df)
+  # })
   
   # observe({
   #   req(input$L0_file)
@@ -390,26 +422,49 @@ server <- function(input, output, session) {
   #   
   #   })
   
+
   L0_df <- reactive({
-    
-    req(file_list(),input$modelof)
-    #Cleaned files names
-    files_names <- names(file_list()) #"Brand","Variant","PackType","PPG"
-    
+    req(input$modelof, any(!is.null(L0_table()), !is.null(L2_table()), !is.null(L3_table())))
+
     #targetinf file
-    target_file <- input$modelof
-    
-    #index of that file
-    idx <- match(target_file,files_names)
-    if (!is.na(idx)) {
-      df <- file_list()[[idx]]
-    } else {
-      print("Invalid index or empty file_list")
-      df <- NULL  # or handle the error as needed
+    target_file = input$modelof
+    print(target_file)
+    if (target_file == input$L0_indicator) {
+      return(L0_table())
+    }else if(target_file == input$L2_indicator){
+      return(L2_table())
+    }else if(target_file == input$L3_indicator){
+      return(L3_table())
+    }else {
+      return(NULL)
     }
-    
-    return(df)
-    
+
+  })
+  
+  # L0_df <- reactive({
+  # 
+  #   req(file_list(),input$modelof)
+  #   # Cleaned files names
+  #   files_names <- names(file_list()) #"Brand","Variant","PackType","PPG"
+  # 
+  #   # targetinf file
+  #   target_file <- input$modelof
+  # 
+  #   #index of that file
+  #   idx <- match(target_file,files_names)
+  #   if (!is.na(idx)) {
+  #     df <- file_list()[[idx]]
+  #   } else {
+  #     print("Invalid index or empty file_list")
+  #     df <- NULL  # or handle the error as needed
+  #   }
+  # 
+  #   return(df)
+  # 
+  # })
+  
+  observe({
+    View(L0_df())
   })
   
   # ###Create median work
