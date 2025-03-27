@@ -281,6 +281,9 @@ ui <- fluidPage(
                                              rHandsontableOutput("L0_file_contents")
                                       ),
                                       column(12,
+                                             rHandsontableOutput("allmodels")
+                                      ),
+                                      column(12,
                                              DT::dataTableOutput("L0_file_filtered",width = 'auto')
                                       )
                                     )

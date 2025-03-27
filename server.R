@@ -322,7 +322,9 @@ server <- function(input, output, session) {
           
           # df <- read_excel(file_1, sheet = "FinalM0")
           
-          m_df <- df %>% mutate(selectedmodels = as.character(selectedmodels)) %>%
+          m_df <- df %>% 
+            filter(Price_pval=="Yes") %>%  
+            mutate(selectedmodels = as.character(selectedmodels)) %>%
             group_by(Channel, Brand, Variant, PackType, PPG) %>%
             reframe(median_val = mid_value(CSF.CSF, na.rm = TRUE)) %>%
             left_join(df, by = c("Channel", "Brand", "Variant", "PackType", "PPG")) %>%
@@ -336,7 +338,7 @@ server <- function(input, output, session) {
           
           wb <- loadWorkbook(file_1)
           addWorksheet(wb, "median")
-          writeData(wb, "median", df_yes)
+          writeData(wb, "median", m_df)
           saveWorkbook(wb, file_1, overwrite = TRUE)
           
           print("✅ 'median' sheet added successfully.") 
@@ -463,9 +465,9 @@ server <- function(input, output, session) {
   # 
   # })
   
-  observe({
-    View(L0_df())
-  })
+  # observe({
+  #   View(L0_df())
+  # })
   
   # ###Create median work
   # reactive()
@@ -475,7 +477,7 @@ server <- function(input, output, session) {
   ## Filters
   # Check if necessary columns exist in the data
 
-  # Dynamic Price_pval Filte
+  # Dynamic Price_pval Filter
   output$price_pval_ui <- renderUI({
     req(L0_df())  # Ensure filtered dataset is available
     price_values <- unique(na.omit(L0_df()$Price_pval))  # Remove NULLs
@@ -707,7 +709,7 @@ server <- function(input, output, session) {
     
     # numericInput("select_m","Select Model Index:",value = 0, min = min(df$Index),max = max(df$Index))
     # selectInput("select_m","Select Model Index:",choices =(df$Index), multiple = TRUE)
-    selectizeInput("select_m","Select Model Index:", choices =NULL, multiple=TRUE)
+    selectizeInput("select_m","Select Model Index:", choices =NULL, multiple=FALSE)
   })
   observe({
     updateSelectizeInput(session, "select_m", choices = final_df()$Index, server = TRUE)
@@ -725,11 +727,13 @@ server <- function(input, output, session) {
     
     if(all(!is.null(selected_id)) && all(!is.na(selected_id)) && all(selected_id %in% df$Index)){
       df[(df$Index %in% selected_id),"selectedmodels"] <- "Yes"
+      
       # df$selectedmodels[df$Index %in% selected_id] <- "Yes"
     }
     
     return(df)
   })
+  
   
   # Save and reset button
   output$savebttn_ui <- renderUI({
@@ -741,9 +745,28 @@ server <- function(input, output, session) {
   
   #Reactive value to store selected models
   selected_models_df <- reactiveVal(data.frame())
+  observe({
+    req(L0_df())
+    selected_models_df(L0_df()[0,])
+  })
+  # selected_model_df <- reactiveVal({
+  #   req(modelselection_df())
+  #   df <- modelselection_df()
+  #   df <- df[df$selectedmodels == 'Yes', , drop = FALSE] #Filter rows with "Yes"
+  #   return(df)
+  # })
   
+  # Populate selected_model_df initially when modelselection_df() is avaiable
+  # observe({
+  #   req(modelselection_df())
+  #   df <- modelselection_df()
+  #   pre_selected <- df[df$selectedmodels == 'Yes', , drop = FALSE] #Filter rows with "Yes"
+  #   selected_models_df(pre_selected)
+  # })
+
+  # Save selected model
   observeEvent(input$save_bttn,{
-    req(input$select_m, modelselection_df())
+    req(input$select_m, modelselection_df(), final_df())
     
     # print(input$select_m)
     
@@ -755,13 +778,25 @@ server <- function(input, output, session) {
       
       #Avoide duplicate entries
       current_data <- selected_models_df()
-      if(all(!(selected_data$Index %in% current_data$Index))){
-        updated_data <- rbind(current_data, selected_data) # Append row
-        selected_models_df(updated_data) #update reactive value
-      }
+      
+      # if(all(!(selected_data$Index %in% current_data$Index))){
+      #   updated_data <- rbind(current_data, selected_data) # Append row
+      #   selected_models_df(updated_data) #update reactive value
+      # }
+      
+      # Remove existing entries with the same combination of Channel, Brand, Variant, PackType, and PPG
+      updated_data <- current_data %>%
+        anti_join(selected_data, by = c("Channel", "Brand", "Variant", "PackType", "PPG"))
+
+      # Append the new selection
+      updated_data <- bind_rows(updated_data, selected_data)
+
+      # Update the reactive data frame
+      selected_models_df(updated_data)
     }
     
   })
+  
   
   # Reset selected models
   observeEvent(input$unsave_bttn,{
@@ -774,6 +809,61 @@ server <- function(input, output, session) {
     
   })
   
+  # # new
+  # observeEvent(input$save_bttn,{
+  #   req(input$select_m,modelselection_df(),selected_models_df())
+  #   df <- ???????
+  #       
+  # })
+  
+  
+  #model selected rows
+  output$L0_file_contents <- renderRHandsontable({
+    req(selected_models_df())
+    df <- selected_models_df() 
+    df <- df %>%
+      select(method,Channel,Brand,Variant,PackType,PPG,selectedmodels,RPIto,Adj.Rsq,AIC,MCV.MCV,CSF.CSF,actualdistvar,Index,initial_val)
+    dataframe1 <- rhandsontable(df) %>% hot_cols(readOnly = TRUE)
+    return(dataframe1)
+  })
+  
+  
+  # output$allmodels <- renderRHandsontable({
+  #   req(L0_df())
+  #   df <- L0_df()
+  #   df <- df %>%
+  #     select(method,Channel,Brand,Variant,PackType,PPG,selectedmodels,RPIto,Adj.Rsq,AIC,MCV.MCV,CSF.CSF,actualdistvar,Index,initial_val) %>%
+  #     filter(selectedmodels == "Yes") %>% arrange(Channel,Brand,Variant,PackType,PPG)
+  #   
+  #   dataframe1 <- rhandsontable(df) %>% hot_cols(readOnly = TRUE)
+  #   return(dataframe1)
+  # })
+  
+  L0_median_df <- reactive({
+    req(L0_df())
+    df <- L0_df()
+    df <- df %>% filter(selectedmodels == "Yes") 
+      
+    return(df)
+  })
+  
+  output$allmodels <- renderRHandsontable({
+    req(L0_median_df(),selected_models_df())
+    
+    selected_df <- selected_models_df()
+    current_df <- L0_median_df()
+    
+    updated_current_df <- anti_join(current_df,selected_df,by = c("Channel", "Brand", "Variant", "PackType", "PPG"))
+    
+    updated_current_df <- bind_rows(updated_current_df,selected_df)
+    
+    df <- updated_current_df %>% 
+      select(method,Channel,Brand,Variant,PackType,PPG,selectedmodels,RPIto,Adj.Rsq,AIC,MCV.MCV,CSF.CSF,actualdistvar,Index,initial_val) %>%
+      arrange(Channel,Brand,Variant,PackType,PPG)
+
+    dataframe1 <- rhandsontable(df) %>% hot_cols(readOnly = TRUE)
+    return(dataframe1)
+  })
   
   output$L0_file_filtered <- DT::renderDataTable({
     req(modelselection_df())
@@ -782,15 +872,16 @@ server <- function(input, output, session) {
     return(dataframe1)
   })
   
-  #model selected rows
-  output$L0_file_contents <- renderRHandsontable({
-    req(selected_models_df())
-    df <- selected_models_df() 
-    # df <- df %>% 
-    #   select(method,Channel,Brand,Variant,PackType,PPG,selectedmodels,RPIto,Adj.Rsq,AIC,MCV.MCV,CSF.CSF,actualdistvar,Index)
-    dataframe1 <- rhandsontable(df) %>% hot_cols(readOnly = TRUE)
-    return(dataframe1)
-  })
+  # 
+  # output$midpoint_df <- renderRHandsontable({
+  #   req(L0_df())
+  #   df <-  L0_df()
+  #   df <- df %>%
+  #     select(method,Channel,Brand,Variant,PackType,PPG,selectedmodels,RPIto,Adj.Rsq,AIC,MCV.MCV,CSF.CSF,actualdistvar,Index,initial_val) %>% 
+  #     arrange(Channel,Brand,Variant,PackType,PPG)
+  #   dataframe1 <- rhandsontable(df) %>% hot_cols(readOnly = TRUE)
+  #   return(dataframe1)
+  # })
   
   # Download File
   # file_name1 <- reactiveVal(input$modelfile$name)
@@ -810,8 +901,6 @@ server <- function(input, output, session) {
       write.xlsx(selected_models_df(), file_1, sheetName = input$sheet, overwrite = TRUE, rowNames=FALSE)
     }
   )
-  
-  
   
   # Reactive expression for the plot
   plot_reactive <- reactive({
