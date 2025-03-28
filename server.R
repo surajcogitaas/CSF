@@ -218,79 +218,6 @@ server <- function(input, output, session) {
     modelfor <- gsub("Wtd_avg_MCV_", "", names(file_list())) #c("Brand","Variant","PackType","PPG")
     selectInput("modelof", "model selection for",choices = modelfor,selected = modelfor[1])
   })
-  # observe({print(input$L0_file)})
-
-  # check <- reactive({
-  #   print(input$L0_file)
-  # })
-  # observe({print(check())})
-  
-  ## median work
-  # median_df <- reactive({
-  #   
-  #   req(file_list(),input$upload_btn)
-  #   
-  #   files <-  input$L0_file
-  #   clm=c(1)
-  #   mid_value <- function(clm, na.rm = FALSE){
-  #     if (na.rm) clm <- na.omit(clm)
-  #     sort_clm <- sort(clm, na.last = NA)
-  #     n <- length(sort_clm)
-  #     if(n==0) return(NA)
-  #     mid_idx <- ceiling(n/2)
-  #     mid_pnt <- sort_clm[mid_idx]
-  #     return(mid_pnt)
-  #   }
-  #   median_fun <- function(file_1){
-  #     # Read file based on its extension
-  #     ext <- tolower(tools::file_ext(file_1))
-  #     # Extract sheet name when excel file is uploaded
-  #     if(ext %in% c("xls", "xlsx")){
-  #       sheets <- excel_sheets(file_1)
-  #       if ("median" %in% sheets) {
-  #         df <- read_excel(file_1,sheet = "median")
-  #         
-  #       }else{
-  #         #If median sheet does not exist
-  #         df <- read_excel(file_1,sheet = "FinalM0")
-  #         df <- df %>%
-  #           mutate(selectedmodels = as.character(selectedmodels)) %>%  #Convert to character
-  #           group_by(Channel,	Brand,	Variant,	PackType,	PPG) %>%
-  #           reframe(median_val = mid_value(CSF.CSF,na.rm = TRUE)) %>% 
-  #           left_join(df, by=c("Channel",	"Brand",	"Variant",	"PackType",	"PPG")) %>%
-  #           ungroup() %>%
-  #           mutate(selectedmodels = ifelse((selectedmodels =="1" ) & (CSF.CSF == median_val), "Yes", selectedmodels)) %>% 
-  #           select(-median_val) %>%
-  #           select(names(df))
-  #         
-  #         # Extract rows where selectedmodels == "Yes"
-  #         df <- df %>% filter(selectedmodels == "Yes")
-  #         # Load existing workbook or create a new one
-  #         wb <- loadWorkbook(file_1)
-  #         addWorksheet(wb, "median")
-  #         writeData(wb, "median", df)
-  # 
-  #         # Save changes to the same file
-  #         saveWorkbook(wb, file_1, overwrite = TRUE)
-  #         print("✅ 'median' sheet added successfully.")
-  #       }
-  #       return(df)
-  #       
-  #     }else{
-  #       return(data.frame())
-  #     }
-  #   }
-  #   
-  #   lst <- lapply(files, median_fun)
-  #   
-  #   files_names <- gsub("Wtd_avg_MCV_", "", tools::file_path_sans_ext(basename(files))) #"Brand","Variant","PackType","PPG"
-  #   
-  #   # Use file names (without extension) as names for the list elements
-  #   lst <- setNames(lst,files_names)    #tools::file_path_sans_ext(basename(files))
-  #   
-  #   return(lst)
-  #   
-  # })
   
   median_df <- reactive({
     
@@ -393,44 +320,14 @@ server <- function(input, output, session) {
     df <- median_df()[[input$L3_indicator]]$full_df
   })
     
-  # observe(
-  #   print(input$L0_indicator)
-  # )
   
-  # observe({
-  #   print(median_df()[[input$L0_indicator]]$full_df)
-  # })
-  # observe({
-  #   View(median_df()$Brand$full_df)
-  # })
-  
-  # observe({
-  #   req(input$L0_file)
-  #   # print(tools::file_path_sans_ext(basename(input$L0_file[1])))
-  #   # file_n <- gsub("Wtd_avg_MCV_", "",tools::file_path_sans_ext(basename(input$L0_file)))
-  #   # print(file_n)
-  #   # print(median_df()[[file_n]]$full_df)
-  #   file_names <- gsub("Wtd_avg_MCV_", "",tools::file_path_sans_ext(basename(input$L0_file)))
-  #   files <- input$L0_file
-  # 
-  #   medianassigning_fun <- function(file){
-  #     df <- 
-  #   }
-  #   # req(input$L0_indicator)
-  #   # print(input$L0_indicator)
-  #   # print(input$L1_indicator)
-  #   # print(input$L2_indicator)
-  #   # print(input$L3_indicator)
-  #   
-  #   })
-  
-
+  # Select targeting file
   L0_df <- reactive({
     req(input$modelof, any(!is.null(L0_table()), !is.null(L2_table()), !is.null(L3_table())))
 
     #targetinf file
     target_file = input$modelof
-    print(target_file)
+    # print(target_file)
     if (target_file == input$L0_indicator) {
       return(L0_table())
     }else if(target_file == input$L2_indicator){
@@ -442,37 +339,6 @@ server <- function(input, output, session) {
     }
 
   })
-  
-  # L0_df <- reactive({
-  # 
-  #   req(file_list(),input$modelof)
-  #   # Cleaned files names
-  #   files_names <- names(file_list()) #"Brand","Variant","PackType","PPG"
-  # 
-  #   # targetinf file
-  #   target_file <- input$modelof
-  # 
-  #   #index of that file
-  #   idx <- match(target_file,files_names)
-  #   if (!is.na(idx)) {
-  #     df <- file_list()[[idx]]
-  #   } else {
-  #     print("Invalid index or empty file_list")
-  #     df <- NULL  # or handle the error as needed
-  #   }
-  # 
-  #   return(df)
-  # 
-  # })
-  
-  # observe({
-  #   View(L0_df())
-  # })
-  
-  # ###Create median work
-  # reactive()
-  
-  
   
   ## Filters
   # Check if necessary columns exist in the data
@@ -749,21 +615,7 @@ server <- function(input, output, session) {
     req(L0_df())
     selected_models_df(L0_df()[0,])
   })
-  # selected_model_df <- reactiveVal({
-  #   req(modelselection_df())
-  #   df <- modelselection_df()
-  #   df <- df[df$selectedmodels == 'Yes', , drop = FALSE] #Filter rows with "Yes"
-  #   return(df)
-  # })
   
-  # Populate selected_model_df initially when modelselection_df() is avaiable
-  # observe({
-  #   req(modelselection_df())
-  #   df <- modelselection_df()
-  #   pre_selected <- df[df$selectedmodels == 'Yes', , drop = FALSE] #Filter rows with "Yes"
-  #   selected_models_df(pre_selected)
-  # })
-
   # Save selected model
   observeEvent(input$save_bttn,{
     req(input$select_m, modelselection_df(), final_df())
@@ -839,68 +691,159 @@ server <- function(input, output, session) {
   #   return(dataframe1)
   # })
   
-  L0_median_df <- reactive({
-    req(L0_df())
-    df <- L0_df()
-    df <- df %>% filter(selectedmodels == "Yes") 
-      
-    return(df)
+  # L0_median_df <- reactive({
+  #   req(L0_df())
+  #   df <- L0_df()
+  #   df <- df %>% filter(selectedmodels == "Yes") 
+  #     
+  #   return(df)
+  # })
+  
+  selected_models_temp <- reactive({
+    req(selected_models_df(),L0_df())
+    
+    current_df <- L0_df()
+    selected_df <- selected_models_df()
+    
+    updated_current_df <- anti_join(current_df,selected_df,by = c("Channel", "Brand", "Variant", "PackType", "PPG"))
+    updated_current_df <- bind_rows(updated_current_df,selected_df)
+    
+    updated_current_df <- updated_current_df %>% arrange(Index) #arrange
+    # remaining_df <- anti_join(current_df, updated_current_df, by = c("Index"))
+    # remaining_df <- bind_rows(remaining_df,updated_current_df)
+    # 
+    # remaining_df <- remaining_df %>% arrange(Index) #arrange
+  
+    return(updated_current_df)
+  })
+  
+  final_selected_models <- reactive({
+    req(selected_models_temp(),L0_df())
+    
+    current_df <- L0_df()
+    updated_df <- selected_models_temp()
+    
+    updated_current_df <- anti_join(current_df,updated_df, by = "Index")
+    updated_current_df <- updated_current_df %>%  mutate(selectedmodels =  as.character(1)) # deselect that models 
+    
+    updated_current_df <- bind_rows(updated_current_df,updated_df)
+    
+    return(updated_current_df)
   })
   
   output$allmodels <- renderRHandsontable({
-    req(L0_median_df(),selected_models_df())
+    req(final_selected_models())
     
-    selected_df <- selected_models_df()
-    current_df <- L0_median_df()
-    
-    updated_current_df <- anti_join(current_df,selected_df,by = c("Channel", "Brand", "Variant", "PackType", "PPG"))
-    
-    updated_current_df <- bind_rows(updated_current_df,selected_df)
-    
-    df <- updated_current_df %>% 
+    df <- final_selected_models() %>% 
+      filter(selectedmodels == "Yes") %>% 
       select(method,Channel,Brand,Variant,PackType,PPG,selectedmodels,RPIto,Adj.Rsq,AIC,MCV.MCV,CSF.CSF,actualdistvar,Index,initial_val) %>%
       arrange(Channel,Brand,Variant,PackType,PPG)
-
+      
     dataframe1 <- rhandsontable(df) %>% hot_cols(readOnly = TRUE)
     return(dataframe1)
   })
   
+  # output$L0_file_filtered <- DT::renderDataTable({
+  #   req(modelselection_df())
+  #   df <- modelselection_df()
+  #   dataframe1 <- DT::datatable(df, options = list(scrollX = TRUE))
+  #   return(dataframe1)
+  # })
   output$L0_file_filtered <- DT::renderDataTable({
-    req(modelselection_df())
-    df <- modelselection_df()
+    req(final_selected_models())
+    df <- final_selected_models()
     dataframe1 <- DT::datatable(df, options = list(scrollX = TRUE))
     return(dataframe1)
   })
   
+  #Download the upated file
+  # output$download_file1 <- downloadHandler(
   # 
-  # output$midpoint_df <- renderRHandsontable({
-  #   req(L0_df())
-  #   df <-  L0_df()
-  #   df <- df %>%
-  #     select(method,Channel,Brand,Variant,PackType,PPG,selectedmodels,RPIto,Adj.Rsq,AIC,MCV.MCV,CSF.CSF,actualdistvar,Index,initial_val) %>% 
-  #     arrange(Channel,Brand,Variant,PackType,PPG)
-  #   dataframe1 <- rhandsontable(df) %>% hot_cols(readOnly = TRUE)
-  #   return(dataframe1)
-  # })
+  #   filename = function() {
+  #     req(input$L0_file)
+  #     paste(tools::file_path_sans_ext(basename(input$L0_file)),".xlsx",sep = "")
+  #   },
+  # 
+  #   content = function(file_1) {
+  #     req(selected_models_df())
+  #     write.xlsx(final_selected_models(), file_1, sheetName = "FinalM0", overwrite = TRUE, rowNames=FALSE)
+  #   }
+  # )
   
-  # Download File
-  # file_name1 <- reactiveVal(input$modelfile$name)
-  # sheet_name1 <- reactiveVal(input$sheet)
-  # print(input$modelfile$name)
-  # print(input$sheet)
   
-  output$download_file1 <- downloadHandler(
+  # observe({print(input$L0_file)})
+  # observe({print(tools::file_path_sans_ext(basename(input$L0_file)))})
+  
+  
+  # output$download_file1 <- downloadHandler(
+  # 
+  #   filename = function() {
+  #     req(input$L0_file)
+  #     paste(tools::file_path_sans_ext(basename(input$L0_file)),".xlsx",sep = "")
+  #   },
+  # 
+  #   content = function(file_1){
+  #     req(selected_models_df(), input$L0_file)
+  # 
+  #     #Read the existing excel file
+  #     wb <- loadWorkbook(input$L0_file)
+  #     
+  #     # Check if "FinalM0" sheet exists; if Yes, delete it
+  #     if ('FinalM0' %in% names(wb)) {
+  #       removeWorksheet(wb, "FinalM0")
+  #     }
+  #     
+  #     #  Add updated data as "FinalM0:
+  #     addWorksheet(wb, "FinalM0" )
+  #     writeData(wb, "FinalM0", final_selected_models())
+  #     
+  #     # save workbook ar the same location
+  #     saveWorkbook(wb, input$L0_file, overwrite = TRUE)
+  # 
+  #     # # # Replace the "FinalM0" sheet with updated data
+  #     # writeData(wb, "FinalM0", selected_models_df(), overwrite=TRUE)
+  #     # 
+  #     # # Save workbook to the same location
+  #     # file_path <- input$L0_file
+  #     # saveWorkbook(wb, file_path, overwrite = TRUE)
+  # 
+  #   }
+  # )
+  
+  
+  observeEvent(input$update_file_bttn,{
+    req(final_selected_models(), input$L0_file)
     
-    filename = function() { 
-      req(input$modelfile)
-      paste(tools::file_path_sans_ext(input$modelfile$name),"_selected models",".xlsx",sep = "") 
-    },
+    # Ensure correct file path handling
+    file_path <- normalizePath(input$L0_file, mustWork = FALSE)
     
-    content = function(file_1) {
-      req(selected_models_df())
-      write.xlsx(selected_models_df(), file_1, sheetName = input$sheet, overwrite = TRUE, rowNames=FALSE)
-    }
-  )
+    
+    tryCatch({
+      # Read the existing Excel file
+      wb <- loadWorkbook(file_path)
+      
+      # Check if "FinalM0" sheet exists; if Yes, delete it
+      if ('FinalM0' %in% names(wb)) {
+        removeWorksheet(wb, "FinalM0")
+      }
+      
+      #  Add updated data as "FinalM0:
+      addWorksheet(wb, "FinalM0" )
+      writeData(wb, "FinalM0", final_selected_models())
+      
+      # save workbook ar the same location
+      saveWorkbook(wb, input$L0_file, overwrite = TRUE)
+      
+      # Show success message
+      showNotification("file updated successfully!", type = "message", duration = 5)
+      
+    }, error = function(e){
+      # Show error message if something goes wrong
+      showNotification(paste("Error:", e$message), type = "error", duration = 5)
+    })
+    
+  })
+  
   
   # Reactive expression for the plot
   plot_reactive <- reactive({

@@ -205,7 +205,9 @@ ui <- fluidPage(
                                                         choices = c("Scatter Plot", "Box Plot", "Bar Plot"), selected = "Bar Plot"),
                                            
                                            
-                                           downloadButton("download_file1", "Download File")
+                                           # downloadButton("download_file1", "Download File")
+                                           actionButton("update_file_bttn", "Update File", icon = icon("save"))
+                                           
                                        ),),
                                 column(9,
                                        box(title = "Filters", width = 12, status = "primary", solidHeader = TRUE,collapsible = TRUE,
