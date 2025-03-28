@@ -631,11 +631,6 @@ server <- function(input, output, session) {
       #Avoide duplicate entries
       current_data <- selected_models_df()
       
-      # if(all(!(selected_data$Index %in% current_data$Index))){
-      #   updated_data <- rbind(current_data, selected_data) # Append row
-      #   selected_models_df(updated_data) #update reactive value
-      # }
-      
       # Remove existing entries with the same combination of Channel, Brand, Variant, PackType, and PPG
       updated_data <- current_data %>%
         anti_join(selected_data, by = c("Channel", "Brand", "Variant", "PackType", "PPG"))
@@ -657,17 +652,7 @@ server <- function(input, output, session) {
     updated_data <- selected_models_df()[!(selected_models_df()$Index %in% input$select_m),]
     selected_models_df(updated_data)
     
-    #update after removing selected model
-    
   })
-  
-  # # new
-  # observeEvent(input$save_bttn,{
-  #   req(input$select_m,modelselection_df(),selected_models_df())
-  #   df <- ???????
-  #       
-  # })
-  
   
   #model selected rows
   output$L0_file_contents <- renderRHandsontable({
@@ -678,27 +663,7 @@ server <- function(input, output, session) {
     dataframe1 <- rhandsontable(df) %>% hot_cols(readOnly = TRUE)
     return(dataframe1)
   })
-  
-  
-  # output$allmodels <- renderRHandsontable({
-  #   req(L0_df())
-  #   df <- L0_df()
-  #   df <- df %>%
-  #     select(method,Channel,Brand,Variant,PackType,PPG,selectedmodels,RPIto,Adj.Rsq,AIC,MCV.MCV,CSF.CSF,actualdistvar,Index,initial_val) %>%
-  #     filter(selectedmodels == "Yes") %>% arrange(Channel,Brand,Variant,PackType,PPG)
-  #   
-  #   dataframe1 <- rhandsontable(df) %>% hot_cols(readOnly = TRUE)
-  #   return(dataframe1)
-  # })
-  
-  # L0_median_df <- reactive({
-  #   req(L0_df())
-  #   df <- L0_df()
-  #   df <- df %>% filter(selectedmodels == "Yes") 
-  #     
-  #   return(df)
-  # })
-  
+
   selected_models_temp <- reactive({
     req(selected_models_df(),L0_df())
     
@@ -709,10 +674,6 @@ server <- function(input, output, session) {
     updated_current_df <- bind_rows(updated_current_df,selected_df)
     
     updated_current_df <- updated_current_df %>% arrange(Index) #arrange
-    # remaining_df <- anti_join(current_df, updated_current_df, by = c("Index"))
-    # remaining_df <- bind_rows(remaining_df,updated_current_df)
-    # 
-    # remaining_df <- remaining_df %>% arrange(Index) #arrange
   
     return(updated_current_df)
   })
@@ -810,13 +771,21 @@ server <- function(input, output, session) {
   #   }
   # )
   
+  # observe({print(input$modelof)})
+  # observe({print(input$L0_file)})
   
   observeEvent(input$update_file_bttn,{
-    req(final_selected_models(), input$L0_file)
+    req(final_selected_models(), input$L0_file, input$modelof)
     
-    # Ensure correct file path handling
-    file_path <- normalizePath(input$L0_file, mustWork = FALSE)
+    #Select file filepath which is choosen in input$modelof
+    # print(paste('modelof',input$modelof))
+    file_path <- input$L0_file[which(grepl(input$modelof, tools::file_path_sans_ext(basename(input$L0_file)), ignore.case = TRUE))]
+    # file_path <- normalizePath(file_path, mustWork = FALSE)
+    # print(file_path)
     
+    # # Ensure correct file path handling
+    # file_path <- normalizePath(input$L0_file, mustWork = FALSE)
+    # print(file_path)
     
     tryCatch({
       # Read the existing Excel file
@@ -832,10 +801,10 @@ server <- function(input, output, session) {
       writeData(wb, "FinalM0", final_selected_models())
       
       # save workbook ar the same location
-      saveWorkbook(wb, input$L0_file, overwrite = TRUE)
+      saveWorkbook(wb, file_path, overwrite = TRUE)
       
       # Show success message
-      showNotification("file updated successfully!", type = "message", duration = 5)
+      showNotification(paste(input$modelof,"file updated successfully!",sep = " "), type = "message", duration = 5)
       
     }, error = function(e){
       # Show error message if something goes wrong
