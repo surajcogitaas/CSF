@@ -257,8 +257,8 @@ server <- function(input, output, session) {
             left_join(df, by = c("Channel", "Brand", "Variant", "PackType", "PPG")) %>%
             ungroup() %>%
             mutate(selectedmodels = ifelse(selectedmodels == "1" & CSF.CSF == median_val, "Yes", selectedmodels)) %>%
-            select(-median_val) %>%
-            select(names(df)) %>% 
+            dplyr::select(-median_val) %>%
+            dplyr::select(names(df)) %>% 
             filter(selectedmodels == "Yes")
           
           # df_yes <- df %>% filter(selectedmodels == "Yes")  # Create filtered dataframe
@@ -291,9 +291,8 @@ server <- function(input, output, session) {
             TRUE ~ selectedmodels  # Otherwise, keep original values
           )
         ) %>% 
-        select(-flag_all_ones) %>% 
+        dplyr::select(-flag_all_ones) %>% 
         ungroup()
-      
       
       return(list(full_df = df_with_m, median_df = m_df))
     }
@@ -659,7 +658,7 @@ server <- function(input, output, session) {
     req(selected_models_df())
     df <- selected_models_df() 
     df <- df %>%
-      select(method,Channel,Brand,Variant,PackType,PPG,selectedmodels,RPIto,Adj.Rsq,AIC,MCV.MCV,CSF.CSF,actualdistvar,Index,initial_val)
+      dplyr::select(method,Channel,Brand,Variant,PackType,PPG,selectedmodels,RPIto,Adj.Rsq,AIC,MCV.MCV,CSF.CSF,actualdistvar,Index,initial_val)
     dataframe1 <- rhandsontable(df) %>% hot_cols(readOnly = TRUE)
     return(dataframe1)
   })
@@ -697,7 +696,7 @@ server <- function(input, output, session) {
     
     df <- final_selected_models() %>% 
       filter(selectedmodels == "Yes") %>% 
-      select(method,Channel,Brand,Variant,PackType,PPG,selectedmodels,RPIto,Adj.Rsq,AIC,MCV.MCV,CSF.CSF,actualdistvar,Index,initial_val) %>%
+      dplyr::select(method,Channel,Brand,Variant,PackType,PPG,selectedmodels,RPIto,Adj.Rsq,AIC,MCV.MCV,CSF.CSF,actualdistvar,Index,initial_val) %>%
       arrange(Channel,Brand,Variant,PackType,PPG)
       
     dataframe1 <- rhandsontable(df) %>% hot_cols(readOnly = TRUE)
