@@ -544,68 +544,105 @@ server <- function(input, output, session) {
   # 
   # })
   
+  
+  
   ############################################################### Filters start #############################################
+  # Create a persistent version of L0_df() just for filtering.
+  filter_data_store <- reactiveVal()
+  
+  # Initialize once (This runs only once, even if L0_df() updates later.)
+  observeEvent(input$modelof, {
+    print(paste("True", input$modelof))
+    req(L0_df())
+    isolate({
+      filter_data_store(L0_df())
+      
+    })
+    print(dim(filter_data_store()))
+  })
+  
+  # observeEvent(input$modelof, {
+  #   print(paste("True", input$modelof))
+  #   req(L0_df())
+  #   filter_data_store(L0_df())
+  #   print(dim(filter_data_store()))
+  # }, once = TRUE)
+  # 
+  
+  
+  
+  # Controlled update only when user clicks refresh
+  observeEvent(input$refresh_filters, {
+    req(filter_data_store())
+    filter_data_store(filter_data_store())
+  })
+  # actionButton("reset_filter_data", "Refresh Filter Data")
+  
+  
+  
+  
+  
   # Check if necessary columns exist in the data
 
   # Dynamic Price_pval Filter
   output$price_pval_ui <- renderUI({
-    req(L0_df())  # Ensure filtered dataset is available
-    price_values <- unique(na.omit(L0_df()$Price_pval))  # Remove NULLs
+    req(filter_data_store())  # Ensure filtered dataset is available
+    price_values <- unique(na.omit(filter_data_store()$Price_pval))  # Remove NULLs
     selectInput("price_pval", "Select Price P-Value:", choices = c("All", price_values), selected = "Yes")
   })
   
   # Dynamic Method Filter
   output$method_ui <- renderUI({
-    req(L0_df())  # Ensure filtered dataset is available
-    methods <- unique(na.omit(L0_df()$method))  # Remove NULLs
+    req(filter_data_store())  # Ensure filtered dataset is available
+    methods <- unique(na.omit(filter_data_store()$method))  # Remove NULLs
     selectInput("method", "Select Method:", choices = c("All",methods), selected = NULL, multiple = TRUE)
   })
   
   
   # Numeric Filter for Distribution_elas (>=0 or NaN)
   output$distribution_elas_ui <- renderUI({
-    req(L0_df())  # Ensure dataset is available
+    req(filter_data_store())  # Ensure dataset is available
     checkboxInput("distribution_elas", "Filter Distribution Elas (>=0 or NaN):", value = TRUE)
   })
   
   # Numeric Filter for Category_elas (>=0 or NaN)
   output$category_elas_ui <- renderUI({
-    req(L0_df())  # Ensure dataset is available
+    req(filter_data_store())  # Ensure dataset is available
     checkboxInput("category_elas", "Filter Category Elas (>=0 or NaN):", value = TRUE)
   })
   
   # Dynamic Channel Filter
   output$channel_ui <- renderUI({
-    req(L0_df()) #Ensure Data is available
-    channels <- unique(na.omit(L0_df()$Channel)) #Remove Nulls
+    req(filter_data_store()) #Ensure Data is available
+    channels <- unique(na.omit(filter_data_store()$Channel)) #Remove Nulls
     selectInput("channel", "Select Channel:", choices = c("All", channels), selected = "All")
   })
   
   # Dynamic Brand Filter (Based on Selected Channel)
   output$brand_ui <- renderUI({
-    req(L0_df(), input$modelof) # Ensure filtered dataset is available
+    req(filter_data_store(), input$modelof) # Ensure filtered dataset is available
     selected_clm <- input$modelof
-    choices <- unique(na.omit(L0_df()[[selected_clm]]))  # Remove NULLs
+    choices <- unique(na.omit(filter_data_store()[[selected_clm]]))  # Remove NULLs
     selectInput("brand", paste("Select ",selected_clm,":",sep = ""), choices = c("All", choices), selected = "All")
   })
   
   # Dynamically update column selection inputs
   output$x_var_ui <- renderUI({
-    req(L0_df())
+    req(filter_data_store())
     x_var_choise <- c("Index")
     selectInput("x_var", "X-axis variable:", choices = x_var_choise, selected = "Index")
   })
   
   output$y_var_ui <- renderUI({
-    req(L0_df())
+    req(filter_data_store())
     y_var_choice <- c("CSF.CSF","MCV.MCV")
     selectInput("y_var", "Y-axis variable:", choices = y_var_choice, selected = y_var_choice[1])
   })
   
   ####### filtering based on New Inputs
   filter_df_1 <- reactive({
-    req(L0_df())  # Ensure dataset is available
-    df <- L0_df()
+    req(filter_data_store())  # Ensure dataset is available
+    df <- filter_data_store()
     
     if(nrow(df) == 0) return(NULL) # Ensure df is not empty
     
@@ -766,6 +803,7 @@ server <- function(input, output, session) {
     
     return(df)
   })
+  
   
   ################################################ Filters End  ################################################################
 
@@ -975,7 +1013,7 @@ server <- function(input, output, session) {
     req(input$modelof, final_selected_models())
     
     selected_models_store$data[[input$modelof]] <- final_selected_models()
-    print(dim(selected_models_store$data[[input$modelof]]))
+    # print(dim(selected_models_store$data[[input$modelof]]))
   })
   
   
