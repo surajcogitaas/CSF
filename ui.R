@@ -25,7 +25,8 @@ library(openxlsx)
 
 
 ui <- fluidPage(
- 
+  # Use shinyjs for toggling visibility
+  useShinyjs(),
   # tags$h2('Cogitaas'), #heading
   # p('Post Modeling'),# placeholder text
   # p('Cogitaas'),
@@ -162,18 +163,18 @@ ui <- fluidPage(
                                     # Granularity/Scope Selection
                                     tags$h4("Granularity/Scope Selection:"),
                                     fluidRow(
-                                      column(3, selectInput("L0_indicator", "L0 Indicator", choices = c("NA","Channel","Brand","Variant","PackType","PPG","PackSize"), selected = 'NA')),
+                                      column(3, selectInput("L0_indicator", "L0 Indicator", choices = c("NA","Channel","Brand","Variant","PackType","PPG","PackSize"), selected = 'Brand')),
                                       column(3, conditionalPanel(
                                         condition = "input.L0_indicator != 'NA'",
-                                        selectInput("L1_indicator", "L1 Indicator", choices = c("NA","Channel","Brand","Variant","PackType","PPG","PackSize"), selected = 'NA')
+                                        selectInput("L1_indicator", "L1 Indicator", choices = c("NA","Channel","Brand","Variant","PackType","PPG","PackSize"), selected = 'Channel')
                                       )),
                                       column(3, conditionalPanel(
                                         condition = "input.L1_indicator != 'NA'",
-                                        selectInput("L2_indicator", "L2 Indicator", choices = c("NA","Channel","Brand","Variant","PackType","PPG","PackSize"), selected = 'NA')
+                                        selectInput("L2_indicator", "L2 Indicator", choices = c("NA","Channel","Brand","Variant","PackType","PPG","PackSize"), selected = 'Variant')
                                       )),
                                       column(3, conditionalPanel(
                                         condition = "input.L2_indicator != 'NA'",
-                                        selectInput("L3_indicator", "L3 Indicator", choices = c("NA","Channel","Brand","Variant","PackType","PPG","PackSize"), selected = 'NA')
+                                        selectInput("L3_indicator", "L3 Indicator", choices = c("NA","Channel","Brand","Variant","PackType","PPG","PackSize"), selected = 'PPG')
                                       ))
                                     )
                                   )
@@ -206,7 +207,11 @@ ui <- fluidPage(
                                            
                                            
                                            # downloadButton("download_file1", "Download File")
-                                           actionButton("update_file_bttn", "Update File", icon = icon("save"))
+                                           actionButton("update_file_bttn", "Update File", icon = icon("save")),
+                                           
+                                           actionButton("run_process", "Run Process", icon = icon("play")),
+                                           
+                                           verbatimTextOutput("process_status")
                                            
                                        ),),
                                 column(9,
@@ -283,11 +288,32 @@ ui <- fluidPage(
                                              rHandsontableOutput("L0_file_contents")
                                       ),
                                       column(12,
-                                             rHandsontableOutput("allmodels")
+                                             # rHandsontableOutput("allmodels")
+                                             # Modern-looking button using shinyWidgets
+                                             actionBttn(
+                                               inputId = "toggle_table", 
+                                               # label = "Data View",
+                                               label = tagList(
+                                                 icon("eye",  style = "font-size: 15px;"),
+                                                 span("Data View",style = "font-size: 15px;")
+                                               ),
+                                               
+                                               style = "fill", 
+                                               color = "success", #"primary",
+                                               # icon = icon("eye"),
+                                               block = TRUE
+                                             ),
+                                             
+                                             # Container div with a unique ID; initially hidden
+                                             hidden(
+                                               div(id = "table_container", 
+                                                   rHandsontableOutput("allmodels")
+                                               )
+                                             )
                                       ),
-                                      column(12,
-                                             DT::dataTableOutput("L0_file_filtered",width = 'auto')
-                                      )
+                                      # column(12,
+                                      #        DT::dataTableOutput("L0_file_filtered",width = 'auto')
+                                      # )
                                     )
                                 )
                               )
@@ -297,112 +323,112 @@ ui <- fluidPage(
                )
         
       ),
-      #Tap1
-      tabPanel(
-        title="M1 to Results",
-        # h2("Content of Tab 1"),
-        useShinyjs(),
-        tags$head(
-          tags$style(HTML("
-                          .hidden-sidebar {display: none !important;}
-                          .expanded-main{width:100% !important; flex: 0 0 100% !impotant; max-width: 100% !important;}
-                          "))
-        ),
-        uiOutput("toggle_ui"),
-        sidebarLayout(
-          sidebarPanel(
-            id = "sidebar_1",
-            tags$h2("Configuration Details"),
-            tags$hr(),
-            # p("place controls here"),
-            # File uploader
-            fileInput('salesfile', "Upload D0 File", 
-                      accept = c(
-                        'text/csv',
-                        'text/comma-separated-values',
-                        'text/tab-separated-values',
-                        'text/plain',
-                        '.csv',
-                        '.xlsx'
-                      )
-            ),
-            
-            fluidRow(
-              column(4,
-                     # Row for selecting work type (Dropdown)
-                     selectInput("worktype", "Select Work Type", choices = c("Onboard", "Continuity","Refresh")),
-              ),
-              column(3,
-                     # Row for integration process selection (Yes/No)
-                     radioButtons("integration_needed", "Integration Process Needed?", 
-                                  choices = c("Yes", "No"), selected = "No"),
-                     
-              ),
-              column(5,
-                     # Conditionally show the input_type dropdown if Integration process is "Yes"
-                     conditionalPanel(
-                       condition = "input.integration_needed == 'Yes'",
-                       fluidRow(
-                         column(12,
-                                selectInput("input_type", "Select Input Type", 
-                                            choices = c("Brand_Variant", "Brand_PPG", "Brand_PackType", "Brand_Variant_PPG"),selected = "Brand_Variant")
-                         )
-                       )
-                     ),
-              )
-            ),
-          
-            # Granularity/Scope Selection
-            tags$h4("Granularity/Scope Selection:"),
-            fluidRow(
-              column(3, selectInput("L0_indicator", "L0 Indicator", choices = c("NA","Channel","Brand","Variant","PackType","PPG","PackSize"), selected = 'NA')),
-              column(3, conditionalPanel(
-                condition = "input.L0_indicator != 'NA'",
-                selectInput("L1_indicator", "L1 Indicator", choices = c("NA","Channel","Brand","Variant","PackType","PPG","PackSize"), selected = 'NA')
-              )),
-              column(3, conditionalPanel(
-                condition = "input.L1_indicator != 'NA'",
-                selectInput("L2_indicator", "L2 Indicator", choices = c("NA","Channel","Brand","Variant","PackType","PPG","PackSize"), selected = 'NA')
-              )),
-              column(3, conditionalPanel(
-                condition = "input.L2_indicator != 'NA'",
-                selectInput("L3_indicator", "L3 Indicator", choices = c("NA","Channel","Brand","Variant","PackType","PPG","PackSize"), selected = 'NA')
-              ))
-            ),
-            
-            fluidRow(
-              column(6,
-                     # Row for frequency selection
-                     selectInput("datafrequency", "Data Frequency", 
-                                 choices = c("Weekly","Monthly"))
-              ),
-              column(6,
-                     # Row for csf_period selection
-                     selectInput("csf_period", "csf Period", 
-                                 choices = c(52, 12))
-              )
-            ),
-            fluidRow(
-              column(4,
-                      # sidebarPanel(
-                        actionButton("run_process", "Run Process", icon = icon("play")),
-                      # )
-                     
-              ),
-              column(8,
-                     verbatimTextOutput("process_status")
-              )
-            )
-            
-          ),
-          mainPanel(
-            id = "main_1",
-            h2('Main content of Tab 1'),
-            p("Display main content"),
-            DT::dataTableOutput("D0_file_contents")
-          )
-        )
-      ),
+      # #Tap1
+      # tabPanel(
+      #   title="M1 to Results",
+      #   # h2("Content of Tab 1"),
+      #   useShinyjs(),
+      #   tags$head(
+      #     tags$style(HTML("
+      #                     .hidden-sidebar {display: none !important;}
+      #                     .expanded-main{width:100% !important; flex: 0 0 100% !impotant; max-width: 100% !important;}
+      #                     "))
+      #   ),
+      #   uiOutput("toggle_ui"),
+      #   sidebarLayout(
+      #     sidebarPanel(
+      #       id = "sidebar_1",
+      #       tags$h2("Configuration Details"),
+      #       tags$hr(),
+      #       # p("place controls here"),
+      #       # File uploader
+      #       fileInput('salesfile', "Upload D0 File", 
+      #                 accept = c(
+      #                   'text/csv',
+      #                   'text/comma-separated-values',
+      #                   'text/tab-separated-values',
+      #                   'text/plain',
+      #                   '.csv',
+      #                   '.xlsx'
+      #                 )
+      #       ),
+      #       
+      #       fluidRow(
+      #         column(4,
+      #                # Row for selecting work type (Dropdown)
+      #                selectInput("worktype", "Select Work Type", choices = c("Onboard", "Continuity","Refresh")),
+      #         ),
+      #         column(3,
+      #                # Row for integration process selection (Yes/No)
+      #                radioButtons("integration_needed", "Integration Process Needed?", 
+      #                             choices = c("Yes", "No"), selected = "No"),
+      #                
+      #         ),
+      #         column(5,
+      #                # Conditionally show the input_type dropdown if Integration process is "Yes"
+      #                conditionalPanel(
+      #                  condition = "input.integration_needed == 'Yes'",
+      #                  fluidRow(
+      #                    column(12,
+      #                           selectInput("input_type", "Select Input Type", 
+      #                                       choices = c("Brand_Variant", "Brand_PPG", "Brand_PackType", "Brand_Variant_PPG"),selected = "Brand_Variant")
+      #                    )
+      #                  )
+      #                ),
+      #         )
+      #       ),
+      #     
+      #       # Granularity/Scope Selection
+      #       tags$h4("Granularity/Scope Selection:"),
+      #       fluidRow(
+      #         column(3, selectInput("L0_indicator", "L0 Indicator", choices = c("NA","Channel","Brand","Variant","PackType","PPG","PackSize"), selected = 'NA')),
+      #         column(3, conditionalPanel(
+      #           condition = "input.L0_indicator != 'NA'",
+      #           selectInput("L1_indicator", "L1 Indicator", choices = c("NA","Channel","Brand","Variant","PackType","PPG","PackSize"), selected = 'NA')
+      #         )),
+      #         column(3, conditionalPanel(
+      #           condition = "input.L1_indicator != 'NA'",
+      #           selectInput("L2_indicator", "L2 Indicator", choices = c("NA","Channel","Brand","Variant","PackType","PPG","PackSize"), selected = 'NA')
+      #         )),
+      #         column(3, conditionalPanel(
+      #           condition = "input.L2_indicator != 'NA'",
+      #           selectInput("L3_indicator", "L3 Indicator", choices = c("NA","Channel","Brand","Variant","PackType","PPG","PackSize"), selected = 'NA')
+      #         ))
+      #       ),
+      #       
+      #       fluidRow(
+      #         column(6,
+      #                # Row for frequency selection
+      #                selectInput("datafrequency", "Data Frequency", 
+      #                            choices = c("Weekly","Monthly"))
+      #         ),
+      #         column(6,
+      #                # Row for csf_period selection
+      #                selectInput("csf_period", "csf Period", 
+      #                            choices = c(52, 12))
+      #         )
+      #       ),
+      #       fluidRow(
+      #         column(4,
+      #                 # sidebarPanel(
+      #                   actionButton("run_process", "Run Process", icon = icon("play")),
+      #                 # )
+      #                
+      #         ),
+      #         column(8,
+      #                verbatimTextOutput("process_status")
+      #         )
+      #       )
+      #       
+      #     ),
+      #     mainPanel(
+      #       id = "main_1",
+      #       h2('Main content of Tab 1'),
+      #       p("Display main content"),
+      #       DT::dataTableOutput("D0_file_contents")
+      #     )
+      #   )
+      # ),
     ),
 
     tabPanel(
