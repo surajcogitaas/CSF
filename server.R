@@ -205,7 +205,11 @@ server <- function(input, output, session) {
     lst <- setNames(lst,files_names)    #tools::file_path_sans_ext(basename(files))
     return(lst)
   })
-  # observe({print(names(file_list()))})
+  
+  observe({
+    req(file_list())  
+    print(names(file_list()))
+    })
   
   # Render the combined data table
   output$combined_data <- DT::renderDataTable({
@@ -352,80 +356,7 @@ server <- function(input, output, session) {
     }
     
   })
-  # target_df <- reactive({
-  #   req(input$modelof, any(!is.null(L0_table()), !is.null(L2_table()), !is.null(L3_table())))
-  #   
-  #   #targetinf file
-  #   target_file <-  input$modelof
-  #   
-  #   # if(!is.na(current_selection)){
-  #   #   return(current_selection())
-  #   # }
-  #   
-  #   # print(target_file)
-  #   if (target_file == input$L0_indicator) {
-  #     return(L0_table())
-  #   }else if(target_file == input$L2_indicator){
-  #     return(L2_table())
-  #   }else if(target_file == input$L3_indicator){
-  #     return(L3_table())
-  #   }else {
-  #     return(NULL)
-  #   }
-  #   
-  # })
   
-  # Initialize reactiveValues to store selections data files
-  # models_selected_df <- reactiveValues(data = list())
-  
-  # Initialize models_selected_df with empty data frames for each modelof value
-  # observeEvent(file_list(), {
-  #   req(file_list())
-  #   modelfor <- gsub("Wtd_avg_MCV_", "", names(file_list())) # e.g., "Brand", "PPG", etc.
-  #   for (model in modelfor) {
-  #     if (is.null(models_selected_df$data[[model]]) || nrow(models_selected_df$data[[model]]) > 0) {
-  #       print(paste("Initializing models_selected_df for:", model))
-  #       # models_selected_df$data[[model]] <- data.frame() # Initialize empty data frame
-  #       # Initialize with target_df() when available
-  #       current_model <- model
-  #       temp_data <- reactive({
-  #         req(input$modelof == current_model)
-  #         target_df()
-  #       })
-  #       if (!is.null(temp_data)) {
-  #         print("Run -----models_selected_df$data[[model]] <- temp_data")
-  #         models_selected_df$data[[model]] <- temp_data()
-  #         # print(paste("str(models_selected_df$data[[model]]) : ",str(models_selected_df$data[[model]])))
-  #       } else {
-  #         print("Run -----data.frame()")
-  #         models_selected_df$data[[model]] <- data.frame() # Fallback to empty data frame
-  #       }
-  #     }
-  #   }
-  # })
-  
-  # # Initialize models_selected_df with original data
-  # observeEvent(file_list(), {
-  #   req(file_list())
-  #   modelfor <- gsub("Wtd_avg_MCV_", "", names(file_list()))
-  #   for (model in modelfor) {
-  #     if (!is.null(models_selected_df$data[[model]]) && nrow(models_selected_df$data[[model]]) > 0) {
-  #       print(paste("Model already initialized:", model))
-  #     } else {
-  #       print(paste("Initializing models_selected_df for:", model))
-  #       current_model <- model
-  #       temp_data <- reactive({
-  #         req(input$modelof == current_model)
-  #         target_df()
-  #       })
-  #       if (!is.null(temp_data)) {
-  #         models_selected_df$data[[model]] <- temp_data()
-  #       } else {
-  #         models_selected_df$data[[model]] <- data.frame()
-  #       }
-  #     }
-  #   }
-  # })
 
   #Retrieve Selections when switching models
   L0_df <- reactive({
@@ -434,118 +365,7 @@ server <- function(input, output, session) {
     current_data <- target_df()
     return(current_data)
     })
-  
-  # L0_df <- reactive({
-  #   req(input$modelof, file_list())
-  #   if (!is.null(models_selected_df$data[[input$modelof]])) {
-  #     return(models_selected_df$data[[input$modelof]])
-  #   } else {
-  #     return(target_df())
-  #   }
-  # })
-  # Retrieve selections when switching models
-  # L0_df <- reactive({
-  #   req(input$modelof, file_list())
-  #   current_data <- target_df()
-  #   validate(need(!is.null(current_data), paste("No data available for", input$modelof)))
-  #   
-  #   print(paste("Checking saved data for:", input$modelof))
-  #   print(paste("Has saved data:", !is.null(models_selected_df$data[[input$modelof]]) && nrow(models_selected_df$data[[input$modelof]]) > 0))
-  #   
-  #   if (!is.null(models_selected_df$data[[input$modelof]]) && nrow(models_selected_df$data[[input$modelof]]) > 0) {
-  #     print(paste("Returning saved selections for:", input$modelof))
-  #     return(models_selected_df$data[[input$modelof]])
-  #   } else {
-  #     print(paste("Using original data for:", input$modelof))
-  #     return(current_data) # Return target_df without overwriting
-  #   }
-  # })
-  
-  # L0_df <- reactive({
-  #   req(input$modelof)
-  #   m <- input$modelof
-  #   if (!is.null(models_selected_df$data[[m]])) {
-  #     models_selected_df$data[[m]]
-  #   } else {
-  #     target_df_for(m)
-  #   }
-  # })
-  
-  # L0_df <- reactive({
-  #   req(input$modelof, file_list())
-  # 
-  #   #Get current data
-  #   current_data <- target_df()
-  #   validate(need(!is.null(current_data), paste("No data available for", input$modelof)))
-  #   
-  #   print(paste("Checking saved data for:", input$modelof))
-  #   print(paste("Has saved data:", !is.null(models_selected_df$data[[input$modelof]]) && nrow(models_selected_df$data[[input$modelof]]) > 0))
-  #   
-  #   #Check if there are saved selections for the current modelof
-  #   if (!is.null(models_selected_df$data[[input$modelof]]) && nrow(models_selected_df$data[[input$modelof]]) > 0) {
-  #     print(paste("Returning saved selections for:", input$modelof))
-  #     return(models_selected_df$data[[input$modelof]])
-  # 
-  #   } else {
-  #     # Initialize with current data if no selections exist
-  #     print(paste("Initializing with original data for:", input$modelof))
-  #     models_selected_df$data[[input$modelof]] <- current_data
-  #     return(current_data)
-  #   }
-  # 
-  # })
-  
-  # #Retrieve Selections when switching models
-  # L0_df <- reactive({
-  #   req(input$modelof, file_list())
-  #   current_data <- target_df()
-  #   validate(need(!is.null(current_data), paste("No data available for", input$modelof)))
-  #   
-  #   print(paste("Checking saved data for:", input$modelof))
-  #   print(paste("Has saved data A:", !is.null(models_selected_df$data[[input$modelof]])))
-  # 
-  #   # view(models_selected_df$data[[input$modelof]])
-  #   print(paste("Has saved data B:", str(models_selected_df$data[[input$modelof]])))
-  # 
-  #   if (!is.null(models_selected_df$data[[input$modelof]]) && nrow(models_selected_df$data[[input$modelof]]) > 0) {
-  #     print(paste("Returning saved selections for:", input$modelof))
-  #     return(models_selected_df$data[[input$modelof]])
-  # 
-  #   } else {
-  #     # Initialize with a default or empty data frame
-  #     print(paste("Using original data for:", input$modelof))
-  #     return(current_data) # Return target_df() without overwriting models_selected_df
-  #   }
-  # 
-  # })
 
-  
-  # # Select targeting file
-  # L0_df <- reactive({
-  #   req(input$modelof, any(!is.null(L0_table()), !is.null(L2_table()), !is.null(L3_table())))
-  # 
-  #   #targetinf file
-  #   target_file = input$modelof
-  #   
-  #   # if(!is.na(current_selection)){
-  #   #   return(current_selection())
-  #   # }
-  # 
-  #   # print(target_file)
-  #   if (target_file == input$L0_indicator) {
-  #     return(L0_table())
-  #   }else if(target_file == input$L2_indicator){
-  #     return(L2_table())
-  #   }else if(target_file == input$L3_indicator){
-  #     return(L3_table())
-  #   }else {
-  #     return(NULL)
-  #   }
-  # 
-  # })
-  
-  
-  
   ############################################################### Filters start #############################################
   # Create a persistent version of L0_df() just for filtering.
   filter_data_store <- reactiveVal()
@@ -861,47 +681,6 @@ server <- function(input, output, session) {
     selected_models_df(L0_df()[0,])
   })
   
-  # # Save selected model
-  # observeEvent(input$save_bttn,{
-  #   req(input$select_m, modelselection_df(), final_df(),input$modelof)
-  # 
-  #   # print(input$select_m)
-  # 
-  #   df <- modelselection_df()
-  #   selected_idx <- input$select_m
-  # 
-  #   if(all(selected_idx>0)){
-  #     selected_data <- df[(df$Index %in% selected_idx), ,drop=FALSE] #get selected row
-  # 
-  #     ## Avoide duplicate entries
-  #     #Get current saved data
-  #     # current_data <- models_selected_df$data[[input$modelof]]
-  #     # if (nrow(current_data)==0) {current_data <- target_df()}
-  #     current_data <- selected_models_df()
-  # 
-  #     # Remove existing entries with the same combination of Channel, Brand, Variant, PackType, and PPG
-  #     updated_data <- current_data %>%
-  #       anti_join(selected_data, by = c("Channel", "Brand", "Variant", "PackType", "PPG")) %>%
-  #       bind_rows(selected_data) #%>% arrange(Index)
-  #     selected_models_df(updated_data)
-  # 
-  #     # Immediately update models_selected_df$data to persist selections
-  #     current_df <- L0_df()
-  #     updated_current_df <- anti_join(current_df, selected_data, by = c("Channel", "Brand", "Variant", "PackType", "PPG")) %>%
-  #       bind_rows(selected_data) %>% arrange(Index)
-  # 
-  #     deselected_df <- anti_join(current_df, updated_current_df, by = "Index") %>%
-  #       mutate(selectedmodels = as.character(1))
-  # 
-  #     final_updated_df <- bind_rows(deselected_df, updated_current_df)
-  # 
-  #     models_selected_df$data[[input$modelof]] <- final_updated_df
-  #     showNotification(paste("Selections for", input$modelof, "saved successfully!"), type = "message")
-  # 
-  #   }
-  # 
-  # })
-  
   # Save selected model
   observeEvent(input$save_bttn,{
     req(input$select_m, modelselection_df(), final_df())
@@ -936,8 +715,6 @@ server <- function(input, output, session) {
     }
 
   })
-  
-
   
   # # Reset selected models
   # observeEvent(input$unsave_bttn,{
@@ -1009,13 +786,24 @@ server <- function(input, output, session) {
     # return(current_df)
   })
   
+  # observeEvent(input$modelof, {
+  #   # req(input$modelof, final_selected_models())
+  #   
+  #   selected_models_store$data[[input$modelof]] <- final_selected_models()
+  #   # print(dim(selected_models_store$data[[input$modelof]]))
+  # })
+  
   observeEvent(input$save_bttn, {
     req(input$modelof, final_selected_models())
-    
+
     selected_models_store$data[[input$modelof]] <- final_selected_models()
     # print(dim(selected_models_store$data[[input$modelof]]))
   })
   
+  observe({
+    req(selected_models_store)
+    print(paste("check list",names(selected_models_store$data)))
+  })
   
   # #Upadte selection upon saving
   # observeEvent(input$save_button, {
@@ -1294,7 +1082,7 @@ server <- function(input, output, session) {
     result <- Output_Main2(project_root, Integration_process_needed, input = input_type, 
                            L0_indicator, L2_indicator, L3_indicator, L1_indicator, 
                            datafrequency, CMA_input, NSV_input, D0_file, 
-                           restofcategory_included, worktype, csf_period)
+                           restofcategory_included, worktype, csf_period, D0_Data = D0_df(), selected_models_store = selected_models_store)
     # print("Calling Output_Main2 function")
     # print(paste("Project Root:", project_root))
     # print(paste("D0 File Path:", D0_file_path))
@@ -1306,7 +1094,6 @@ server <- function(input, output, session) {
 
   })
   
-
   ########################################################### M1 to Result:-Sidebar end ################################################################
   
 }

@@ -170,11 +170,11 @@ ui <- fluidPage(
                                       )),
                                       column(3, conditionalPanel(
                                         condition = "input.L1_indicator != 'NA'",
-                                        selectInput("L2_indicator", "L2 Indicator", choices = c("NA","Channel","Brand","Variant","PackType","PPG","PackSize"), selected = 'Variant')
+                                        selectInput("L2_indicator", "L2 Indicator", choices = c("NA","Channel","Brand","Variant","PackType","PPG","PackSize"), selected = 'NA')
                                       )),
                                       column(3, conditionalPanel(
                                         condition = "input.L2_indicator != 'NA'",
-                                        selectInput("L3_indicator", "L3 Indicator", choices = c("NA","Channel","Brand","Variant","PackType","PPG","PackSize"), selected = 'PPG')
+                                        selectInput("L3_indicator", "L3 Indicator", choices = c("NA","Channel","Brand","Variant","PackType","PPG","PackSize"), selected = 'NA')
                                       ))
                                     )
                                   )
