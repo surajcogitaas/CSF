@@ -793,6 +793,13 @@ server <- function(input, output, session) {
   #   # print(dim(selected_models_store$data[[input$modelof]]))
   # })
   
+  # observe({
+  #   req(input$modelof, final_selected_models())
+  # 
+  #   selected_models_store$data[[input$modelof]] <- final_selected_models()
+  #   # print(dim(selected_models_store$data[[input$modelof]]))
+  # })
+  
   observeEvent(input$save_bttn, {
     req(input$modelof, final_selected_models())
 
@@ -862,12 +869,12 @@ server <- function(input, output, session) {
     toggle("table_container", anim = TRUE, animType = "slide", time = 0.5)
   })
   
-  output$L0_file_filtered <- DT::renderDataTable({
-    req(final_selected_models())
-    df <- final_selected_models()
-    dataframe1 <- DT::datatable(df, options = list(scrollX = TRUE))
-    return(dataframe1)
-  })
+  # output$L0_file_filtered <- DT::renderDataTable({
+  #   req(final_selected_models())
+  #   df <- final_selected_models()
+  #   dataframe1 <- DT::datatable(df, options = list(scrollX = TRUE))
+  #   return(dataframe1)
+  # })
   
   # Upadate original files
   observeEvent(input$update_file_bttn,{

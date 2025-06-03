@@ -282,11 +282,11 @@ ui <- fluidPage(
                                 box(title = "Uploaded Data", width = 12, status = "info", solidHeader = TRUE,
                                     
                                     fluidRow(
-                                      column(12,
-                                             # DTOutput("L0_file_contents"))
-                                             # DT::dataTableOutput("L0_file_contents",width = 'auto')
-                                             rHandsontableOutput("L0_file_contents")
-                                      ),
+                                      # column(12,
+                                      #        # DTOutput("L0_file_contents"))
+                                      #        # DT::dataTableOutput("L0_file_contents",width = 'auto')
+                                      #        rHandsontableOutput("L0_file_contents")
+                                      # ),
                                       column(12,
                                              # rHandsontableOutput("allmodels")
                                              # Modern-looking button using shinyWidgets
