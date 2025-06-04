@@ -327,17 +327,35 @@ server <- function(input, output, session) {
     df <- median_df()[[input$L3_indicator]]$full_df
   })
   
+  #Store the data in selected_models_store
+  observeEvent(input$upload_btn,{
     
+    inputs_indicator <- list(
+      L0_indicator = input$L0_indicator,
+      L2_indicator = input$L2_indicator,
+      L3_indicator = input$L3_indicator
+    )
+    # print(paste("!is.na(input$L0_indicator) :",!(input$L0_indicator=="NA")))
+    for(indicator_name in names(inputs_indicator)){
+      
+      input_val <- inputs_indicator[[indicator_name]]
+      
+      # Skip if input_val is "NA" or NA
+      if (!is.null(input_val) && input_val != "NA" && !is.na(input_val)) {
+        #Assign reactive table based on input_na,e
+        selected_models_store$data[[input_val]] <- switch(indicator_name,
+                                                          L0_indicator = L0_table(),
+                                                          L2_indicator = L2_table(),
+                                                          L3_indicator = L3_table()
+                                                        )
+      }
+    }
+  })
+  
   #select targeting file
   target_df <- reactive({
     req(input$modelof, any(!is.null(L0_table()), !is.null(L2_table()), !is.null(L3_table())))
-    
-    #targetinf file
-    # target_file <-  input$modelof
-    
-    # if(!is.na(current_selection)){
-    #   return(current_selection())
-    # }
+  
     print(input$modelof)
     print(!is.null(selected_models_store$data[[input$modelof]]))
     # Check if store data for this mdel 
@@ -345,15 +363,16 @@ server <- function(input, output, session) {
       
       return(selected_models_store$data[[input$modelof]])
       
-    }else if (input$modelof == input$L0_indicator) {
-      return(L0_table())
-    }else if(input$modelof == input$L2_indicator){
-      return(L2_table())
-    }else if(input$modelof == input$L3_indicator){
-      return(L3_table())
-    }else {
-      return(NULL)
-    }
+    }else{NULL}
+    # else if (input$modelof == input$L0_indicator) {
+    #   return(L0_table())
+    # }else if(input$modelof == input$L2_indicator){
+    #   return(L2_table())
+    # }else if(input$modelof == input$L3_indicator){
+    #   return(L3_table())
+    # }else {
+    #   return(NULL)
+    # }
     
   })
   
@@ -793,19 +812,19 @@ server <- function(input, output, session) {
   #   # print(dim(selected_models_store$data[[input$modelof]]))
   # })
   
-  # observe({
-  #   req(input$modelof, final_selected_models())
-  # 
-  #   selected_models_store$data[[input$modelof]] <- final_selected_models()
-  #   # print(dim(selected_models_store$data[[input$modelof]]))
-  # })
-  
-  observeEvent(input$save_bttn, {
+  observe({
     req(input$modelof, final_selected_models())
 
     selected_models_store$data[[input$modelof]] <- final_selected_models()
     # print(dim(selected_models_store$data[[input$modelof]]))
   })
+  
+  # observeEvent(input$save_bttn, {
+  #   req(input$modelof, final_selected_models())
+  # 
+  #   selected_models_store$data[[input$modelof]] <- final_selected_models()
+  #   # print(dim(selected_models_store$data[[input$modelof]]))
+  # })
   
   observe({
     req(selected_models_store)
@@ -1033,10 +1052,13 @@ server <- function(input, output, session) {
   })
   # observe({print(D0_file_name())})
   
+  #msp file storage
+  msp_storage <- reactiveValues(data =list())
   
   ## Trigger Script Execution 
   observeEvent(input$run_process, {
     output$process_status <- renderText("Processing...Please wait.")
+    
     
     # Capture user selections from UI
     project_root <<- dir_path()
@@ -1093,15 +1115,104 @@ server <- function(input, output, session) {
     # print("Calling Output_Main2 function")
     # print(paste("Project Root:", project_root))
     # print(paste("D0 File Path:", D0_file_path))
+    # print(paste("result :",names(result)))
+    # print(paste("result 1 :",View(result[["L0L2.csv"]][["allMSP"]])))
+    
+    level_list <- names(result)
+    for(lev_i in 1:length(level_list)){
+      level_selected <- level_list[lev_i]
+      
+      if(!is.null(result[[level_selected]][["allMSP"]])){
+        print(paste("✅ Stored allMSP for:", level_selected))
+        msp_storage$data[[level_selected]] <- result[[level_selected]][["allMSP"]]
+      }else{
+        msp_storage$data[[level_selected]] <- NULL
+        print(paste("⚠️ No allMSP found for:", level_selected))
+      }
+    }
+    
+    # print(paste("names(msp_storage$data) :",names(msp_storage$data)))
+    # print(paste("names(msp_storage$data) data:",View(msp_storage$data[[level_list[length(level_list)]]])))
     
     
     # Display status updates
     output$process_output <- renderText(result)
     output$process_status <- renderText("Process Completed Successfully!")
-
   })
   
   ########################################################### M1 to Result:-Sidebar end ################################################################
+  
+  ##################################################### START CREATING GRAPHS AFTER INTEGRATOR CODE ########################################################################################
+  # Add msp files for further use
+  # observe({print(paste("names(msp_storage$data) :",names(msp_storage$data)))})
+  
+  # # MSP file
+  # output$available_levels <- renderUI({
+  #   selectInput("selected_level", "Select Level", choices = names(msp_storage$data))
+  # })
+  # 
+  # 
+  # output$msp_file <- renderRHandsontable({
+  #   req(input$selected_level)
+  #   req(msp_storage$data[[input$selected_level]])
+  #   
+  #   df <- msp_storage$data[[input$selected_level]]
+  #   
+  #   # print(paste("class :",class(df)))
+  #   # view(df)
+  #   if (is.null(df) || !is.data.frame(df) || ncol(df) == 0) {
+  #     return(NULL)  # Don't render anything
+  #   }
+  # 
+  #   dataframe1 <- rhandsontable(df) %>% hot_cols(readOnly = TRUE)
+  #   return(dataframe1)
+  # })
+  
+  ################### MSP Graphs
+  ## Select level for graph
+  # MSP file
+  output$available_level_op <- renderUI({
+    levels = names(msp_storage$data)
+    selectInput("graph_level_ip", "Graph for", choices = levels)
+  })
+  
+  # Reactieve to get Selected level data 
+  level_df <- reactive({
+    req(input$graph_level_ip)
+    req(msp_storage$data[[input$graph_level_ip]])
+
+    df <- msp_storage$data[[input$graph_level_ip]]
+    # print(paste("class :",class(df)))
+    # view(df)
+    if (is.null(df) || !is.data.frame(df) || ncol(df) == 0) {
+      return(NULL)  # Don't render anything
+    }
+    return(df)
+  })
+
+  # select channel, Dynamic channel dropdown based on selected lavel.
+  output$channel_op <- renderUI({
+    req(level_df())
+    df <- level_df()
+    channels <- unique(na.omit(df$Channel))
+    selectInput("channel_ip", "Select Channel", choices = channels)
+  })
+  
+  # Reactive for graphs data
+  grapha_df <- reactive({
+    req(level_df(), input$channel_ip)
+    df <- level_df()
+    df <- df[df$Channel %in% input$channel_ip,]
+    return(df)
+  })
+  
+  # observe({
+  #   view(grapha_df())
+  # })
+  
+  #Reactiveexpression for plot
+  
+  
   
 }
 

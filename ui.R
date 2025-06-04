@@ -280,7 +280,7 @@ ui <- fluidPage(
                               
                               fluidRow(
                                 box(title = "Uploaded Data", width = 12, status = "info", solidHeader = TRUE,
-                                    
+
                                     fluidRow(
                                       # column(12,
                                       #        # DTOutput("L0_file_contents"))
@@ -291,30 +291,51 @@ ui <- fluidPage(
                                              # rHandsontableOutput("allmodels")
                                              # Modern-looking button using shinyWidgets
                                              actionBttn(
-                                               inputId = "toggle_table", 
+                                               inputId = "toggle_table",
                                                # label = "Data View",
                                                label = tagList(
                                                  icon("eye",  style = "font-size: 15px;"),
                                                  span("Data View",style = "font-size: 15px;")
                                                ),
-                                               
-                                               style = "fill", 
+
+                                               style = "fill",
                                                color = "success", #"primary",
                                                # icon = icon("eye"),
                                                block = TRUE
                                              ),
-                                             
+
+                                             # uiOutput("available_levels"),
+                                             # DT::dataTableOutput("L0_file_filtered",width = 'auto')
+
+
                                              # Container div with a unique ID; initially hidden
                                              hidden(
-                                               div(id = "table_container", 
-                                                   rHandsontableOutput("allmodels")
+                                               div(id = "table_container",
+                                                   rHandsontableOutput("allmodels"),
+                                                   # uiOutput("available_levels"),
+                                                   # rHandsontableOutput("msp_file")
                                                )
                                              )
                                       ),
                                       # column(12,
-                                      #        DT::dataTableOutput("L0_file_filtered",width = 'auto')
+                                      #        # uiOutput("available_levels"),
+                                      #        # # DT::dataTableOutput("L0_file_filtered",width = 'auto')
+                                      #        # rHandsontableOutput("msp_file")
                                       # )
                                     )
+                                )
+                              ),
+                              fluidRow(
+                                box(title = "Graphs",width = 12, status = "primary", solidHeader = TRUE, collapsible = FALSE,
+                                  fluidRow(
+                                    column(6,
+                                           uiOutput("available_level_op")
+                                           # uiOutput("level_channel_op")
+                                    ),
+                                    column(6,
+                                           uiOutput("channel_op")
+                                    )
+                                  )
                                 )
                               )
                      )
