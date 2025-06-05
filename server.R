@@ -805,13 +805,6 @@ server <- function(input, output, session) {
     # return(current_df)
   })
   
-  # observeEvent(input$modelof, {
-  #   # req(input$modelof, final_selected_models())
-  #   
-  #   selected_models_store$data[[input$modelof]] <- final_selected_models()
-  #   # print(dim(selected_models_store$data[[input$modelof]]))
-  # })
-  
   observe({
     req(input$modelof, final_selected_models())
 
@@ -819,73 +812,40 @@ server <- function(input, output, session) {
     # print(dim(selected_models_store$data[[input$modelof]]))
   })
   
-  # observeEvent(input$save_bttn, {
-  #   req(input$modelof, final_selected_models())
-  # 
-  #   selected_models_store$data[[input$modelof]] <- final_selected_models()
-  #   # print(dim(selected_models_store$data[[input$modelof]]))
-  # })
-  
   observe({
     req(selected_models_store)
     print(paste("check list",names(selected_models_store$data)))
   })
   
-  # #Upadte selection upon saving
-  # observeEvent(input$save_button, {
-  #   req(input$modelof, final_selected_models())
-  #   models_selected_df$data[[input$modelof]] <- final_selected_models()
-  #   showNotification(paste("Selections for", input$modelof, "saved successfully!"), type = "message")
-  # })
+  # Final updated model selected file for visualization
+  allmodels_df <- reactive({
+    req(final_selected_models())
+    df <- final_selected_models() %>%
+      filter(selectedmodels == "Yes") %>%
+      dplyr::select(method,Channel,Brand,Variant,PackType,PPG,selectedmodels,RPIto,Adj.Rsq,AIC,MCV.MCV,CSF.CSF,lastyravgprice,actualdistvar,Index,initial_val) %>%
+      arrange(Channel,Brand,Variant,PackType,PPG)
+    return(df)
+  })
   
-  # # Debugging: Print contents of models_selected_df to verify
-  # observe({
-  #   req(input$modelof)
-  #   print(paste("Current modelof:", input$modelof))
-  #   print(paste("Has saved data C:", !is.null(models_selected_df$data[[input$modelof]]))) #&& nrow(models_selected_df$data[[input$modelof]]) > 0))
-  #   # print("Contents of models_selected_df$data[[input$modelof]]:")
-  #   # print(str(models_selected_df$data[[input$modelof]]))
-  #   # print("Contents of models_selected_df$data:")
-  #   # print(str(models_selected_df$data))
-  # })
-  
-  # #Retrieve Selections when switching models
-  # current_selection <- reactive({
-  #   req(input$modelof)
-  #   if (!is.null(models_selected_df$data[[input$modelof]])) {
-  #     selected_models$data[[input$modelof]]
-  #   } else {
-  #     # Initialize with a default or empty data frame
-  #     L0_df()
-  #   }
-  # })
-  
-  # Final updated model selected file
+  ##########
+  # selected model Data frame View
   output$allmodels <- renderRHandsontable({
     req(final_selected_models())
     
     #selected_models_store$data[[input$modelof]]
-    df <- final_selected_models() %>%
-      filter(selectedmodels == "Yes") %>%
-      dplyr::select(method,Channel,Brand,Variant,PackType,PPG,selectedmodels,RPIto,Adj.Rsq,AIC,MCV.MCV,CSF.CSF,actualdistvar,Index,initial_val) %>%
-      arrange(Channel,Brand,Variant,PackType,PPG)
-
+    df <- allmodels_df()
+    
     dataframe1 <- rhandsontable(df) %>% hot_cols(readOnly = TRUE)
     return(dataframe1)
   })
-  # output$allmodels <- renderRHandsontable({
-  #   req(models_selected_df$data[[input$modelof]])
-  #   df <- models_selected_df$data[[input$modelof]] %>%
-  #     filter(selectedmodels == "Yes") %>%
-  #     dplyr::select(method, Channel, Brand, Variant, PackType, PPG, selectedmodels, RPIto, Adj.Rsq, AIC, MCV.MCV, CSF.CSF, actualdistvar, Index, initial_val) %>%
-  #     arrange(Channel, Brand, Variant, PackType, PPG)
-  #   rhandsontable(df) %>% hot_cols(readOnly = TRUE)
-  # })
-
   
-  # Toggle visibility with a smooth slide animation
+  # Toggle visibility with a smooth slide animation FOR dATA fRAME
   observeEvent(input$toggle_table, {
     toggle("table_container", anim = TRUE, animType = "slide", time = 0.5)
+  })
+  # Toggle visibility with a smooth slide animation FOR GRAPHS CSF,MCV, PRICE
+  observeEvent(input$toggle_table_1, {
+    toggle("table_container_1", anim = TRUE, animType = "slide", time = 0.5)
   })
   
   # output$L0_file_filtered <- DT::renderDataTable({
@@ -934,7 +894,6 @@ server <- function(input, output, session) {
     })
     
   })
-  
   
   # Reactive expression for the plot
   plot_reactive <- reactive({
@@ -995,6 +954,162 @@ server <- function(input, output, session) {
   output$plot <- renderPlotly({
     plot_reactive()
   })
+  
+  ################### Stacked Bar chart
+  stacked_plot_reactive <- reactive({
+    req(allmodels_df(), input$modelof, input$channel)
+    
+    # View(allmodels_df())
+    df <- allmodels_df() %>% 
+      dplyr::filter(Channel==input$channel) %>% 
+      dplyr::select(Channel,input$modelof, MCV.MCV, CSF.CSF, lastyravgprice) %>% 
+      mutate(TopBar = MCV.MCV - lastyravgprice,
+             Price_mid = lastyravgprice/2,
+             CSF_pos = lastyravgprice + (TopBar*0.1),#0.5,#(TopBar/10),
+             MCV_top = MCV.MCV + 0.05) #%>% mutate(CSF_lable = paste0("CSF:", round(CSF.CSF,1),"%"))
+    # View(df)
+    #Create Stacked bar plot
+    p <- plot_ly(df, x = ~get(input$modelof)) %>% 
+      # Bottom: Price
+      add_trace(y = ~lastyravgprice, 
+                type = 'bar', 
+                name = "Price",
+                marker= list(color = "#156082", line = list(color = "#0E2841", width = 1.5)),#list(color = '#08519C'),
+                text = ~paste("Price:",round(lastyravgprice,2)),#~CSF_lable, textposition = "inside", insidetextanchor = "start",
+                textposition = "inside",
+                insidetextanchor = "middle",
+                textfont = list(color = 'white', size = 12),
+                hoverinfo = "text",
+                hovertext = ~paste("For:", input$modelof,
+                                   "<br>MCV:", round(MCV.MCV, 2),
+                                   "<br>CSF:", round(CSF.CSF, 2),  
+                                   "<br>Price:", round(lastyravgprice, 2))) %>%
+      # "#F0F8FF""#B0E0E6""#BFEFFF""#D6F0FF""#87CEEB""#87CEFA""#000080""#00008B""#191970""#003153""#002366""#2A2F4A""#0A1E5E" '#08519C'  "#156082""#DCEAF7""#0E2841"
+      #Top bar:MCV extra
+      add_trace(y = ~TopBar, 
+                type = 'bar', 
+                name = 'MCV Extra',
+                marker= list(color = "#DCEAF7", line = list(color = "#0E2841", width = 1.5)), #list(color = 'lightblue'),
+                # text = ~paste("MCV:",round(MCV.MCV,2)),
+                # textposition = "inside",
+                # insidetextanchor = "end",
+                # textfont = list(color = "black", size=12),
+                hoverinfo = "text",
+                hovertext = ~paste("For:", input$modelof,
+                                   "<br>MCV:", round(MCV.MCV, 2),
+                                   "<br>CSF:", round(CSF.CSF, 2),  
+                                   "<br>Price:", round(lastyravgprice, 2))) %>% 
+      
+      # CSF label
+      add_text(x = ~get(input$modelof), y = ~CSF_pos,
+               text = ~paste("CSF:", round(CSF.CSF,2)),
+               textposition = "inside",
+               insidetextanchor = "end",
+               textfont = list(size = 12, color = "#0E2841",family = "Arial Black"), 
+               showlegend = FALSE,
+               hoverinfo = "skip"
+               ) %>% 
+      # MCV label
+      add_text(x = ~get(input$modelof), y = ~MCV_top,
+               text = ~paste("MCV:",round(MCV.MCV,2)),
+               textposition = "top center",
+               textfont = list(size = 12, color = 'black'),
+               sgowlegend = FALSE,
+               hoverinfo = "skip")
+  
+      # Layout
+      p <- p %>% 
+        layout(barmode = 'stack',
+             title = paste(input$channel, "-", input$modelof),
+             xaxis = list(title = input$modelof),
+             yaxis = list(title = paste("Price"," ","CSF"," ","MCV"),sep = " "),
+             hovermode = "closest",
+             showlegend = FALSE)
+    
+    return(p)
+  })
+  output$stacked_plot_op <- renderPlotly({
+    stacked_plot_reactive()
+  })
+  
+  ###################
+  ########## Graph for MSP, CSF, price
+  
+  #Grpah for MCV
+  mcv_plot_reactive <- reactive({
+    req(allmodels_df(), input$modelof, input$channel)
+    
+    df <- allmodels_df() %>% 
+      dplyr::select(Channel,input$modelof, MCV.MCV) %>% 
+      dplyr::filter(Channel==input$channel)
+    p <- plot_ly(df, x = ~get(input$modelof), y = ~MCV.MCV, type = "bar",
+            color = ~get(input$modelof),colors = "Set2")#hovertext=~hover_text, hoverinfo="text"
+    
+    # Apply plot settings
+    p <- p %>% layout(title = paste(input$channel,"-",input$modelof),
+                      xaxis = list(title = input$modelof),
+                      yaxis = list(title = "MCV"),
+                      hovermode = "closest",
+                      barmode = "group")
+    return(p)
+  })
+  
+  # Render Plot for selected model
+  output$mcv_plot <- renderPlotly({
+    mcv_plot_reactive()
+  })
+  
+  #Grpah for CSF
+  csf_plot_reactive <- reactive({
+    req(allmodels_df(), input$modelof, input$channel)
+    
+    df <- allmodels_df() %>% 
+      dplyr::select(Channel,input$modelof, CSF.CSF) %>% 
+      dplyr::filter(Channel==input$channel)
+    p <- plot_ly(df, x = ~get(input$modelof), y = ~CSF.CSF, type = "bar",
+                 color = ~get(input$modelof),colors = "Set2")#hovertext=~hover_text, hoverinfo="text"
+    
+    # Apply plot settings
+    p <- p %>% layout(title = paste(input$channel,"-",input$modelof),
+                      xaxis = list(title = input$modelof),
+                      yaxis = list(title = "CSF"),
+                      hovermode = "closest",
+                      barmode = "group")
+    return(p)
+  })
+  
+  # Render Plot for selected model
+  output$csf_plot <- renderPlotly({
+    csf_plot_reactive()
+  })
+  
+  #Grpah for Price
+  price_plot_reactive <- reactive({
+    req(allmodels_df(), input$modelof, input$channel)
+    
+    df <- allmodels_df() %>% 
+      dplyr::select(Channel,input$modelof, lastyravgprice) %>% 
+      dplyr::filter(Channel==input$channel)
+    p <- plot_ly(df, x = ~get(input$modelof), y = ~lastyravgprice, type = "bar",
+                 color = ~get(input$modelof),colors = "Set2")#hovertext=~hover_text, hoverinfo="text"
+    
+    # Apply plot settings
+    p <- p %>% layout(title = paste(input$channel,"-",input$modelof),
+                      xaxis = list(title = input$modelof),
+                      yaxis = list(title = "Price"),
+                      hovermode = "closest",
+                      barmode = "group")
+    return(p)
+  })
+  
+  # Render Plot for selected model
+  output$price_plot <- renderPlotly({
+    price_plot_reactive()
+  })
+  
+  
+  
+  
   
   # # Download Plot
   # output$download_plot <- downloadHandler(
@@ -1210,8 +1325,53 @@ server <- function(input, output, session) {
   #   view(grapha_df())
   # })
   
-  #Reactiveexpression for plot
+  # Reactive expression for plot
+  msp_plotly_reactive <- reactive({
+    req(grapha_df())
+    df <- grapha_df()
+    View(df)
+    
+    df <- df %>% 
+      dplyr::select(Channel, Brand, MSP, CSF, MCV, Price, MShare, NewMShare ) %>%
+      mutate(hover_text =  paste("Channel:",Channel, 
+                                 "<br>Brand:",Brand, 
+                                 "<br>MCV:", paste(round(MCV,2)),
+                                 "<br>CSF:", paste(round(CSF,2)),
+                                 "<br>Price:", paste(round(Price,2)),
+                                 "<br>MShare:", paste(round(MShare,2),"%"),
+                                 "<br>NewMShare:", paste(round(NewMShare,2),"%")
+                                 )
+             )
+    
+    p <- plot_ly(data = df, x = ~Brand, y = ~MSP, 
+                 type = 'bar', 
+                 color = ~ Brand, colors = "Set2", 
+                 text = ~paste(round(MSP,2),"%"),
+                 textposition = "inside",
+                 insidetextanchor = "end",
+                 textfont = list(color = 'Black', size = 12),
+                 hovertext= ~ hover_text,
+                 hoverinfo = "text"
+                 # marker = list(
+                 #   line = list(color = 'black', width = 1.5)
+                 # )
+                 )
+    
+    #Apply plot settings
+    p <- p %>% layout(title = 'MSP',
+                      xaxis = list(title = "Brand"),
+                      yaxis = list(title = "MSP (%)"),
+                      hovermode = "closest",
+                      barmode = "group"
+                      # margin = list(b=100) #Give extra space for long brnad names
+                      )
+    return(p)
+  })
   
+  # Render plot
+  output$msp_plot <- renderPlotly({
+    msp_plotly_reactive()
+  })
   
   
 }

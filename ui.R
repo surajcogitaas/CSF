@@ -282,14 +282,41 @@ ui <- fluidPage(
                                 box(title = "Uploaded Data", width = 12, status = "info", solidHeader = TRUE,
 
                                     fluidRow(
-                                      # column(12,
-                                      #        # DTOutput("L0_file_contents"))
-                                      #        # DT::dataTableOutput("L0_file_contents",width = 'auto')
-                                      #        rHandsontableOutput("L0_file_contents")
-                                      # ),
                                       column(12,
-                                             # rHandsontableOutput("allmodels")
-                                             # Modern-looking button using shinyWidgets
+                                             # DTOutput("L0_file_contents"))
+                                             # DT::dataTableOutput("L0_file_contents",width = 'auto')
+                                             # rHandsontableOutput("L0_file_contents")
+                                             plotlyOutput("stacked_plot_op")
+                                            
+                                      ),
+                                     
+                                    ),
+                                    fluidRow(
+                                      column(6,
+                                             actionBttn(
+                                               inputId = "toggle_table_1",
+                                               # label = "Data View",
+                                               label = tagList(
+                                                 icon("eye",  style = "font-size: 15px;"),
+                                                 span("View Separately",style = "font-size: 15px;")
+                                               ),
+                                               
+                                               style = "fill",
+                                               color = "success", #"primary",
+                                               # icon = icon("eye"),
+                                               block = TRUE
+                                             ),
+                                             
+                                             hidden(
+                                               div(id = "table_container_1",
+                                                   plotlyOutput("mcv_plot"),
+                                                   plotlyOutput("csf_plot"),
+                                                   plotlyOutput("price_plot")
+                                               )
+                                             )
+                                             
+                                             ),
+                                      column(6,
                                              actionBttn(
                                                inputId = "toggle_table",
                                                # label = "Data View",
@@ -297,32 +324,55 @@ ui <- fluidPage(
                                                  icon("eye",  style = "font-size: 15px;"),
                                                  span("Data View",style = "font-size: 15px;")
                                                ),
-
+                                               
                                                style = "fill",
                                                color = "success", #"primary",
                                                # icon = icon("eye"),
                                                block = TRUE
                                              ),
-
-                                             # uiOutput("available_levels"),
-                                             # DT::dataTableOutput("L0_file_filtered",width = 'auto')
-
-
                                              # Container div with a unique ID; initially hidden
                                              hidden(
                                                div(id = "table_container",
-                                                   rHandsontableOutput("allmodels"),
+                                                   
+                                                   rHandsontableOutput("allmodels")
                                                    # uiOutput("available_levels"),
                                                    # rHandsontableOutput("msp_file")
                                                )
                                              )
-                                      ),
-                                      # column(12,
-                                      #        # uiOutput("available_levels"),
-                                      #        # # DT::dataTableOutput("L0_file_filtered",width = 'auto')
-                                      #        # rHandsontableOutput("msp_file")
-                                      # )
+                                             
+                                             )
                                     )
+                                    # fluidRow(
+                                    #   column(12,
+                                    #          actionBttn(
+                                    #            inputId = "toggle_table",
+                                    #            # label = "Data View",
+                                    #            label = tagList(
+                                    #              icon("eye",  style = "font-size: 15px;"),
+                                    #              span("Data View",style = "font-size: 15px;")
+                                    #            ),
+                                    #            
+                                    #            style = "fill",
+                                    #            color = "success", #"primary",
+                                    #            # icon = icon("eye"),
+                                    #            block = TRUE
+                                    #          )
+                                    #   )
+                                    #   
+                                    # ),
+                                    # fluidRow(
+                                    #   column(12,
+                                    #          # Container div with a unique ID; initially hidden
+                                    #          hidden(
+                                    #            div(id = "table_container",
+                                    #                
+                                    #                rHandsontableOutput("allmodels")
+                                    #                # uiOutput("available_levels"),
+                                    #                # rHandsontableOutput("msp_file")
+                                    #            )
+                                    #          )
+                                    #   )
+                                    # )
                                 )
                               ),
                               fluidRow(
@@ -334,6 +384,11 @@ ui <- fluidPage(
                                     ),
                                     column(6,
                                            uiOutput("channel_op")
+                                    )
+                                  ),
+                                  fluidRow(
+                                    column(12,
+                                      plotlyOutput("msp_plot")
                                     )
                                   )
                                 )
