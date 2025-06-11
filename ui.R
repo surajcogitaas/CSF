@@ -23,6 +23,8 @@ library(rhandsontable)
 library(data.table)
 library(openxlsx)
 
+# "#F0F8FF""#B0E0E6""#BFEFFF""#D6F0FF""#87CEEB""#87CEFA""#000080""#00008B""#191970""#003153""#002366""#2A2F4A""#0A1E5E" '#08519C'  "#156082""#DCEAF7""#0E2841"
+
 
 ui <- fluidPage(
   # Use shinyjs for toggling visibility
@@ -33,12 +35,38 @@ ui <- fluidPage(
   # shinythemes::themeSelector(),
   # theme = bslib::bs_theme(bootswatch = "darkly"),
   # theme = bslib::bs_theme(bootswatch = "flatly"),
+  
   theme = shinytheme("flatly"),
+  
   # theme = bslib::bs_theme(bootswatch = "cosmo"),
   # theme = bslib::bs_theme(bootswatch = "simplex"),
   # theme = bslib::bs_theme(bootswatch = "yeti"),
   # theme = bslib::bs_theme(bootswatch = "slate"),
   # selected_dir <- "C:/Users/Suraj/OneDrive - CogitaasAVA/Desktop/Post Modelling/CSF-Folder",
+  
+  # ## Custom style scoped only to our target box
+  # tags$head(
+  #   tags$style(HTML("
+  #   #centered-box .box-header .box-title {
+  #   display: block;
+  #   text-align: center;
+  #   width: 100%;
+  #   font-size: 18px;
+  #   }
+  # "))
+  # ),
+  tags$head(
+    tags$style(HTML("
+    #my_centered_box .box-title {
+      width: 100% !important;
+      text-align: center !important;
+      font-weight: bold !important;
+      font-size: 18px !important;
+    }
+  "))
+  ),
+  
+  
   fluidRow(
     column(4,
            tags$h2('Cogitaas')
@@ -163,10 +191,10 @@ ui <- fluidPage(
                                     # Granularity/Scope Selection
                                     tags$h4("Granularity/Scope Selection:"),
                                     fluidRow(
-                                      column(3, selectInput("L0_indicator", "L0 Indicator", choices = c("NA","Channel","Brand","Variant","PackType","PPG","PackSize"), selected = 'Brand')),
+                                      column(3, selectInput("L0_indicator", "L0 Indicator", choices = c("NA","Channel","Brand","Variant","PackType","PPG","PackSize"), selected = 'NA')),
                                       column(3, conditionalPanel(
                                         condition = "input.L0_indicator != 'NA'",
-                                        selectInput("L1_indicator", "L1 Indicator", choices = c("NA","Channel","Brand","Variant","PackType","PPG","PackSize"), selected = 'Channel')
+                                        selectInput("L1_indicator", "L1 Indicator", choices = c("NA","Channel","Brand","Variant","PackType","PPG","PackSize"), selected = 'NA')
                                       )),
                                       column(3, conditionalPanel(
                                         condition = "input.L1_indicator != 'NA'",
@@ -279,7 +307,7 @@ ui <- fluidPage(
                                 ),),
                               
                               fluidRow(
-                                box(title = "Uploaded Data", width = 12, status = "info", solidHeader = TRUE,
+                                box(title = "Uploaded Data", width = 12, status = "primary", solidHeader = TRUE,
 
                                     fluidRow(
                                       column(12,
@@ -376,22 +404,69 @@ ui <- fluidPage(
                                 )
                               ),
                               fluidRow(
-                                box(title = "Graphs",width = 12, status = "primary", solidHeader = TRUE, collapsible = FALSE,
-                                  fluidRow(
-                                    column(6,
-                                           uiOutput("available_level_op")
-                                           # uiOutput("level_channel_op")
-                                    ),
-                                    column(6,
-                                           uiOutput("channel_op")
+                                # column(12,align = "center",
+                                #        div(
+                                #          style = "background-color: #08519C; padding: 10px; border-radius: 5px;",
+                                #          h4(uiOutput("L0msp_title"))
+                                #        )
+                                #        
+                                # ),
+                                div(id= "my_centered_box",
+                                    box(title = uiOutput("L0msp_title"), width = 12,  status = "primary", solidHeader = TRUE, collapsible = FALSE,
+                                        
+                                        fluidRow(
+                                          column(6,
+                                                 uiOutput("L0channel_op")
+                                          ),
+                                          
+                                        ),
+                                        fluidRow(
+                                          column(12,
+                                                 plotlyOutput("L0msp_plot")
+                                          )
+                                        )
                                     )
-                                  ),
-                                  fluidRow(
-                                    column(12,
-                                      plotlyOutput("msp_plot")
+                                ),
+                                div(id= "my_centered_box",
+                                    box(title = uiOutput("L0L2msp_title"), width = 12,  status = "primary", solidHeader = TRUE, collapsible = FALSE,
+                                        
+                                        fluidRow(
+                                          column(6,
+                                                 uiOutput("L0L2channel_op")
+                                          ),
+                                          column(6,
+                                                 uiOutput("L0L2Brand_op")
+                                          )
+                                        ),
+                                        fluidRow(
+                                          column(12,
+                                                 plotlyOutput("L0L2msp_plot")
+                                          )
+                                        )
                                     )
-                                  )
-                                )
+                                ),
+                                div(id= "my_centered_box",
+                                    box(title = uiOutput("L0L2L3msp_title"), width = 12,  status = "primary", solidHeader = TRUE, collapsible = FALSE,
+                                        
+                                        fluidRow(
+                                          column(4,
+                                                 uiOutput("L0L2L3channel_op")
+                                          ),
+                                          column(4,
+                                                 uiOutput("L0L2L3Brand_op")
+                                          ),
+                                          column(4,
+                                                 uiOutput("L0L2L3Variant_op")
+                                          )
+                                        ),
+                                        fluidRow(
+                                          column(12,
+                                                 plotlyOutput("L0L2L3msp_plot")
+                                          )
+                                        )
+                                    )
+                                ),
+                                
                               )
                      )
                    )

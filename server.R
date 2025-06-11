@@ -664,8 +664,35 @@ server <- function(input, output, session) {
   observe({
     updateSelectizeInput(session, "select_m", choices = final_df()$Index, server = TRUE)
   })
-
   
+  ################ Double Click selection-Start ##############
+  click_tracker <- reactiveValues(last_click = NULL, last_index = NULL)
+  
+  observeEvent(event_data("plotly_click", source = "modelplot"), {
+    click_data <- event_data("plotly_click", source = "modelplot")
+    req(click_data)
+    
+    current_time <- Sys.time()
+    clicked_index <- click_data$x
+    
+    # If previous click was on same index and within 0.5 seconds => treat as double-click
+    if (!is.null(click_tracker$last_click) &&
+        difftime(current_time, click_tracker$last_click, units = "secs") < 0.5 &&
+        click_tracker$last_index == clicked_index) {
+      
+      # Simulated double-click: update the input
+      updateSelectizeInput(session, "select_m", selected = clicked_index)
+      
+      showNotification(paste("Model Index", clicked_index, "selected via double-click"), type = "message")
+    }
+    
+    # Update click tracker
+    click_tracker$last_click <- current_time
+    click_tracker$last_index <- clicked_index
+  })
+  ################# Double Click selection-End ##############
+  
+  ### Data frame aftr model selection
   modelselection_df <- reactive({
     req(final_df())
     df <- final_df()
@@ -895,7 +922,7 @@ server <- function(input, output, session) {
     
   })
   
-  # Reactive expression for the plot
+  ################### Reactive expression for the plot
   plot_reactive <- reactive({
     req(final_df(), input$x_var, input$y_var)
     df <- final_df()
@@ -938,7 +965,7 @@ server <- function(input, output, session) {
     } else if (input$plot_type == "Box Plot") {
       p <- plot_ly(df, x = ~get(input$x_var), y = ~get(input$y_var), type = "box")
     } else if (input$plot_type == "Bar Plot") {
-      p <- plot_ly(df, x = ~get(input$x_var), y = ~get(input$y_var), type = "bar",color = ~RPIto,colors = color_list_final, hovertext=~hover_text, hoverinfo="text")
+      p <- plot_ly(df, x = ~get(input$x_var), y = ~get(input$y_var), type = "bar",color = ~RPIto,colors = color_list_final, hovertext=~hover_text, hoverinfo="text",source = "modelplot")
     }
     
     # Apply plot settings
@@ -1283,41 +1310,72 @@ server <- function(input, output, session) {
   #   return(dataframe1)
   # })
   
-  ################### MSP Graphs
+  ##################################### MSP Graphs
   ## Select level for graph
-  # MSP file
-  output$available_level_op <- renderUI({
-    levels = names(msp_storage$data)
-    selectInput("graph_level_ip", "Graph for", choices = levels)
+  # # MSP file
+  # output$available_level_op <- renderUI({
+  #   levels = names(msp_storage$data)
+  #   selectInput("graph_level_ip", "Graph for", choices = levels)
+  # })
+  # 
+  # # Reactieve to get Selected level data 
+  # level_df <- reactive({
+  #   req(input$graph_level_ip)
+  #   req(msp_storage$data[[input$graph_level_ip]])
+  # 
+  #   df <- msp_storage$data[[input$graph_level_ip]]
+  #   # print(paste("class :",class(df)))
+  #   # view(df)
+  #   if (is.null(df) || !is.data.frame(df) || ncol(df) == 0) {
+  #     return(NULL)  # Don't render anything
+  #   }
+  #   return(df)
+  # })
+  
+  # #Reactieve to get Selected L0 level data
+  # L0_level_df <- reactive({
+  #   req(msp_storage$data)
+  #   req(names(msp_storage$data)[1])
+  #   level <- names(msp_storage$data)[1]
+  # 
+  #   df <- msp_storage$data[[level]]
+  #   # print(paste("class :",class(df)))
+  #   # view(df)
+  #   if (is.null(df) || !is.data.frame(df) || ncol(df) == 0) {
+  #     return(NULL)  # Don't render anything
+  #   }
+  #   return(df)
+  # })
+  
+  ############################ MSP L0 Level Graph
+  ## L0_level Graphs title
+  output$L0msp_title <- renderUI({
+    HTML(paste("<div style='text-align:center; font-size:18px; font_weight:bold;'>MSP across ",input$L0_indicator,"</div>"))
   })
   
-  # Reactieve to get Selected level data 
-  level_df <- reactive({
-    req(input$graph_level_ip)
-    req(msp_storage$data[[input$graph_level_ip]])
-
-    df <- msp_storage$data[[input$graph_level_ip]]
-    # print(paste("class :",class(df)))
-    # view(df)
-    if (is.null(df) || !is.data.frame(df) || ncol(df) == 0) {
-      return(NULL)  # Don't render anything
-    }
-    return(df)
-  })
-
   # select channel, Dynamic channel dropdown based on selected lavel.
-  output$channel_op <- renderUI({
-    req(level_df())
-    df <- level_df()
+  output$L0channel_op <- renderUI({
+    req(msp_storage$data)
+    req(names(msp_storage$data)[1])
+    # req(L0_level_df())
+    # df <- L0_level_df()
+    level <- names(msp_storage$data)[1]
+    df <- msp_storage$data[[level]]
     channels <- unique(na.omit(df$Channel))
-    selectInput("channel_ip", "Select Channel", choices = channels)
+    selectInput("L0channel_ip", "Select Channel", choices = channels)
   })
   
   # Reactive for graphs data
-  grapha_df <- reactive({
-    req(level_df(), input$channel_ip)
-    df <- level_df()
-    df <- df[df$Channel %in% input$channel_ip,]
+  L0grapha_df <- reactive({
+    # req(L0_level_df(), input$channel_ip)
+    req(msp_storage$data)
+    req(names(msp_storage$data)[1])
+    level <- names(msp_storage$data)[1]
+    df <- msp_storage$data[[level]]
+    df <- df[df$Channel %in% input$L0channel_ip,]
+    if (is.null(df) || !is.data.frame(df) || ncol(df) == 0) {
+      return(NULL)  # Don't render anything
+    }
     return(df)
   })
   
@@ -1326,27 +1384,27 @@ server <- function(input, output, session) {
   # })
   
   # Reactive expression for plot
-  msp_plotly_reactive <- reactive({
-    req(grapha_df())
-    df <- grapha_df()
-    View(df)
+  L0msp_plotly_reactive <- reactive({
+    req(L0grapha_df())
+    df <- L0grapha_df()
+    # View(df)
     
     df <- df %>% 
-      dplyr::select(Channel, Brand, MSP, CSF, MCV, Price, MShare, NewMShare ) %>%
+      dplyr::select(Channel, input$L0_indicator, MSP, CSF, MCV, Price, MShare, NewMShare ) %>%
       mutate(hover_text =  paste("Channel:",Channel, 
-                                 "<br>Brand:",Brand, 
+                                 paste0("<br>",input$L0_indicator,":"),get(input$L0_indicator), 
                                  "<br>MCV:", paste(round(MCV,2)),
                                  "<br>CSF:", paste(round(CSF,2)),
                                  "<br>Price:", paste(round(Price,2)),
-                                 "<br>MShare:", paste(round(MShare,2),"%"),
-                                 "<br>NewMShare:", paste(round(NewMShare,2),"%")
+                                 "<br>MShare:", paste(round(MShare,4)*100,"%"),
+                                 "<br>NewMShare:", paste(round(NewMShare,4)*100,"%")
                                  )
              )
     
-    p <- plot_ly(data = df, x = ~Brand, y = ~MSP, 
+    p <- plot_ly(data = df, x = ~get(input$L0_indicator), y = ~MSP, 
                  type = 'bar', 
-                 color = ~ Brand, colors = "Set2", 
-                 text = ~paste(round(MSP,2),"%"),
+                 color = ~get(input$L0_indicator), colors = "Set2", 
+                 text = ~paste(round(MSP,4)*100,"%"),
                  textposition = "inside",
                  insidetextanchor = "end",
                  textfont = list(color = 'Black', size = 12),
@@ -1358,8 +1416,8 @@ server <- function(input, output, session) {
                  )
     
     #Apply plot settings
-    p <- p %>% layout(title = 'MSP',
-                      xaxis = list(title = "Brand"),
+    p <- p %>% layout(title = NULL,#'MSP',
+                      xaxis = list(title = input$L0_indicator),
                       yaxis = list(title = "MSP (%)"),
                       hovermode = "closest",
                       barmode = "group"
@@ -1369,8 +1427,277 @@ server <- function(input, output, session) {
   })
   
   # Render plot
-  output$msp_plot <- renderPlotly({
-    msp_plotly_reactive()
+  output$L0msp_plot <- renderPlotly({
+    L0msp_plotly_reactive()
+  })
+  
+  
+  ############################ MSP L0L2 Level Graph
+  ## L0L2_level Graphs title
+  output$L0L2msp_title <- renderUI({
+    HTML(paste("<div style='text-align:center; font-size:18px; font_weight:bold;'>MSP across ",input$L0_indicator,"-",input$L2_indicator,"</div>"))
+  })
+  
+  # select channel, Dynamic channel dropdown based on selected lavel.
+  output$L0L2channel_op <- renderUI({
+    req(msp_storage$data)
+    req(names(msp_storage$data)[2])
+    # req(L0_level_df())
+    # df <- L0_level_df()
+    level <- names(msp_storage$data)[2]
+    df <- msp_storage$data[[level]]
+    channels <- unique(na.omit(df$Channel))
+    selectInput("L0L2channel_ip", "Select Channel", choices = channels)
+  })
+  # select Level0, Dynamic Brand dropdown based on selected lavel.
+  output$L0L2Brand_op <- renderUI({
+    req(msp_storage$data)
+    req(names(msp_storage$data)[2],input$L0L2channel_ip )
+  
+    level <- names(msp_storage$data)[2]
+    df <- msp_storage$data[[level]] %>% dplyr::filter(Channel == input$L0L2channel_ip)
+    Brands <- unique(na.omit(df$Brand))
+    selectInput("L0L2brand_ip", "Select Brand", choices = c("All",Brands), selected = "All")
+  })
+  
+  # Reactive for graphs data
+  L0L2grapha_df <- reactive({
+    req(msp_storage$data)
+    req(names(msp_storage$data)[2], input$L0L2channel_ip,input$L0L2brand_ip)
+    
+    level <- names(msp_storage$data)[2]
+    df <- msp_storage$data[[level]]
+    if (!is.null(input$L0L2brand_ip) && input$L0L2brand_ip != "All") {
+      df <- df %>% dplyr::filter(Channel == input$L0L2channel_ip) %>% dplyr::filter(Brand == input$L0L2brand_ip)
+    }else{
+      df <- df %>% dplyr::filter(Channel == input$L0L2channel_ip)
+    }
+    # df <- df[df$Channel %in% input$channel_ip,]
+    if (is.null(df) || !is.data.frame(df) || ncol(df) == 0) {
+      return(NULL)  # Don't render anything
+    }
+    return(df)
+  })
+  
+  # observe({
+  #   view(grapha_df())
+  # })
+  
+  # Reactive expression for plot
+  L0L2msp_plotly_reactive <- reactive({
+    req(L0L2grapha_df())
+    df <- L0L2grapha_df()
+    # View(df)
+    level0 <- input$L0_indicator # Brand
+    level2 <- input$L2_indicator # Variant
+    
+    df <- df %>% 
+      dplyr::select(Channel, level0,level2, MSP, CSF, MCV, Price, MShare, NewMShare ) %>%
+      mutate(hover_text =  paste("Channel:",Channel, 
+                                 paste0("<br>",level0,":"),get(level0),
+                                 paste0("<br>",level2,":"),get(level2),
+                                 "<br>MCV:", paste(round(MCV,2)),
+                                 "<br>CSF:", paste(round(CSF,2)),
+                                 "<br>Price:", paste(round(Price,2)),
+                                 "<br>MShare:", paste(round(MShare,4)*100,"%"),
+                                 "<br>NewMShare:", paste(round(NewMShare,4)*100,"%"))) %>% 
+      arrange(Channel, level0, level2)
+    
+    p <- plot_ly(data = df, x = ~get(level0), y = ~MSP, 
+                 type = 'bar',
+                 barmode = 'group',
+                 color = ~get(level2), colors = "Set2", 
+                 text = ~paste(round(MSP,4)*100,"%"),
+                 textposition = "inside",
+                 insidetextanchor = "end",
+                 textfont = list(color = 'Black', size = 12),
+                 hovertext= ~ hover_text,
+                 hoverinfo = "text"
+                 # marker = list(
+                 #   line = list(color = 'black', width = 1.5)
+                 # )
+    )
+    
+    #Apply plot settings
+    p <- p %>% layout(title = NULL,#'MSP',
+                      xaxis = list(title = paste0(level0,"-",level2),type = 'category'),
+                      yaxis = list(title = "MSP (%)"),
+                      hovermode = "closest",
+                      # barmode = "group"
+                      bargap = 0.3, # space between category group
+                      bargroupgap = 0.1 # space between bar in a group
+                      # margin = list(b=100) #Give extra space for long brnad names
+    )
+    return(p)
+  })
+  
+  # Render plot
+  output$L0L2msp_plot <- renderPlotly({
+    L0L2msp_plotly_reactive()
+  })
+  
+  ######################## MSP L0L2L3 level graph
+  
+  ## L0L2_level Graphs title
+  output$L0L2L3msp_title <- renderUI({
+    HTML(paste("<div style='text-align:center; font-size:18px; font_weight:bold;'>MSP across ",input$L0_indicator,"-",input$L2_indicator,"-",input$L3_indicator,"</div>"))
+  })
+  # select channel, Dynamic channel dropdown based on selected lavel.
+  output$L0L2L3channel_op <- renderUI({
+    req(msp_storage$data, names(msp_storage$data)[3])
+    
+    level <- names(msp_storage$data)[3]
+    df <- msp_storage$data[[level]]
+    channels <- unique(na.omit(df$Channel))
+    selectInput("L0L2L3channel_ip", "Select Channel", choices = channels)
+  })
+  # select Level0, Dynamic Brand dropdown based on selected lavel.
+  output$L0L2L3Brand_op <- renderUI({
+    req(msp_storage$data)
+    req(names(msp_storage$data)[3], input$L0L2L3channel_ip)
+    # req(L0_level_df())
+    # df <- L0_level_df()
+    level <- names(msp_storage$data)[3]
+    df <- msp_storage$data[[level]] %>% dplyr::filter(get(input$L1_indicator) == input$L0L2L3channel_ip)
+    
+    # Brands <- unique(na.omit(df$Brand))
+    Brands <- df %>% dplyr::select(input$L0_indicator) %>% drop_na() %>% dplyr::distinct() %>% pull()
+    
+    selectInput("L0L2L3brand_ip", paste("Select", input$L0_indicator,sep = " "), choices = c("All",Brands), selected = "All")
+  })
+  # select Level2, Dynamic PPG/Variant dropdown based on selected lavel.
+  output$L0L2L3Variant_op <- renderUI({
+    req(msp_storage$data)
+    req(names(msp_storage$data)[3], input$L0L2L3channel_ip, input$L0L2L3brand_ip)
+    # req(L0_level_df())
+    # df <- L0_level_df()
+    level <- names(msp_storage$data)[3]
+    
+    if (input$L0L2L3brand_ip != "All") {
+      df <- msp_storage$data[[level]] %>% 
+        dplyr::filter(get(input$L1_indicator) == input$L0L2L3channel_ip) %>% 
+        dplyr::filter(get(input$L0_indicator) == input$L0L2L3brand_ip)
+    }else{
+      df <- msp_storage$data[[level]] %>% 
+        dplyr::filter(get(input$L1_indicator) == input$L0L2L3channel_ip) 
+    }
+    variants <- df %>% dplyr::select(input$L2_indicator) %>% drop_na() %>% dplyr::distinct() %>% pull()
+    selectInput("L0L2L3Variant_ip", paste("Select", input$L2_indicator,sep = " "), choices = c("All",variants), selected = "All")
+  })
+  # Reactive for graphs data
+  L0L2L3grapha_df <- reactive({
+    # req(L0_level_df(), input$channel_ip)
+    req(msp_storage$data)
+    req(names(msp_storage$data)[3], input$L0L2L3channel_ip, input$L0L2L3brand_ip, input$L0L2L3Variant_ip)
+    level <- names(msp_storage$data)[3]
+    df <- msp_storage$data[[level]]
+    # View(df)
+    if (input$L0L2L3brand_ip != "All" && input$L0L2L3Variant_ip != 'All' ) {
+      
+      df <- df %>% dplyr::filter(get(input$L1_indicator) == input$L0L2L3channel_ip) %>% 
+        dplyr::filter(get(input$L0_indicator) == input$L0L2L3brand_ip) %>% 
+        dplyr::filter(get(input$L2_indicator) == input$L0L2L3Variant_ip)
+    }else if(input$L0L2L3brand_ip != "All"){
+      
+      df <- df %>% dplyr::filter(get(input$L1_indicator) == input$L0L2L3channel_ip)%>% 
+        dplyr::filter(get(input$L0_indicator) == input$L0L2L3brand_ip)
+    }else if(input$L0L2L3Variant_ip != "All"){
+      
+      df <- df %>% dplyr::filter(get(input$L1_indicator) == input$L0L2L3channel_ip) %>% 
+        dplyr::filter(get(input$L2_indicator) == input$L0L2L3Variant_ip)
+    }else{
+      df <- df %>% dplyr::filter(get(input$L1_indicator) == input$L0L2L3channel_ip)
+    }
+    # view(df)
+    # df <- df[df$Channel %in% input$channel_ip,]
+    if (is.null(df) || !is.data.frame(df) || ncol(df) == 0) {
+      return(NULL)  # Don't render anything
+    }
+    return(df)
+  })
+  # observe({
+  #   view(L0L2L3grapha_df())
+  # })
+  # Reactive expression for plot
+  L0L2L3msp_plotly_reactive <- reactive({
+    req(L0L2L3grapha_df())
+    df <- L0L2L3grapha_df()
+    View(df)
+    level0 <- input$L0_indicator # Brand
+    level2 <- input$L2_indicator # Variant
+    level3 <- input$L3_indicator # PPG
+    
+    df <- df %>% 
+      dplyr::select(Channel, level0,level2, level3, MSP, CSF, MCV, Price, MShare, NewMShare ) %>%
+      mutate(hover_text =  paste("Channel:",Channel, 
+                                 paste0("<br>",level0,":"),get(level0),
+                                 paste0("<br>",level2,":"),get(level2),
+                                 paste0("<br>",level3,":"),get(level3),
+                                 "<br>MCV:", paste(round(MCV,2)),
+                                 "<br>CSF:", paste(round(CSF,2)),
+                                 "<br>Price:", paste(round(Price,2)),
+                                 "<br>MShare:", paste(round(MShare,4)*100,"%"),
+                                 "<br>NewMShare:", paste(round(NewMShare,4)*100,"%"))) %>% 
+      arrange(Channel, level0, level2, level3)
+    
+    
+    
+    #Create plot: one trace per PPG group
+    p <- plot_ly()
+    
+    print(paste("unique(df[[level3]])) : ",unique(df[[level3]])))
+    for (L3val in unique(df[[level3]])) {
+      df_sub <- df[df[[level3]] == L3val, ]
+      
+      # optional: skip if df_sub is empty
+      if(nrow(df_sub) == 0) next
+      
+      p <- p %>% 
+        add_bars(
+          x = list(df_sub[[level0]], df_sub[[level2]]),
+          y = df_sub$MSP,
+          name = as.character(L3val),
+          text = paste0(round(df_sub$MSP,4)*100,"%"),
+          textposition = "inside",
+          insidetextanchor = "end",
+          textfont = list(color = 'black', size = 11),
+          hovertext = df_sub$hover_text,
+          hoverinfo = "text"
+        )
+    }
+    
+    # p <- plot_ly(data = df, x = ~interaction(get(level0), get(level3), sep = " | "), y = ~MSP, 
+    #              type = 'bar',
+    #              barmode = 'group',
+    #              color = ~get(level2), colors = "Set2", 
+    #              text = ~paste(round(MSP,4)*100,"%"),
+    #              textposition = "inside",
+    #              insidetextanchor = "end",
+    #              textfont = list(color = 'Black', size = 12),
+    #              hovertext= ~ hover_text,
+    #              hoverinfo = "text"
+    #              # marker = list(
+    #              #   line = list(color = 'black', width = 1.5)
+    #              # )
+    # )
+    
+    # # # Apply plot settings
+    # p <- p %>% layout(title = NULL,#'MSP',
+    #                   barmode = "group",
+    #                   xaxis = list(title = paste0(level3),type = 'multicategory'),#list(title = paste0(level0, " | ", level2), type = 'category'),#list(title = paste0(level0),type = 'multicategory'),
+    #                   yaxis = list(title = "MSP (%)"),
+    #                   hovermode = "closest",
+    #                   # barmode = "group"
+    #                   bargap = 0.3, # space between category group
+    #                   bargroupgap = 0.1 # space between bar in a group
+    #                   # margin = list(b=100) #Give extra space for long brnad names
+    # )
+    return(p)
+  })
+  
+  # Render plot
+  output$L0L2L3msp_plot <- renderPlotly({
+    L0L2L3msp_plotly_reactive()
   })
   
   
