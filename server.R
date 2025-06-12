@@ -965,7 +965,7 @@ server <- function(input, output, session) {
     } else if (input$plot_type == "Box Plot") {
       p <- plot_ly(df, x = ~get(input$x_var), y = ~get(input$y_var), type = "box")
     } else if (input$plot_type == "Bar Plot") {
-      p <- plot_ly(df, x = ~get(input$x_var), y = ~get(input$y_var), type = "bar",color = ~RPIto,colors = color_list_final, hovertext=~hover_text, hoverinfo="text",source = "modelplot")
+      p <- plot_ly(df, x = ~get(input$x_var), y = ~get(input$y_var), type = "bar",color = ~RPIto,colors = color_list_final, hovertext=~hover_text, hoverinfo="text",source = "modelplot") %>% event_register("plotly_click")
     }
     
     # Apply plot settings
@@ -973,7 +973,9 @@ server <- function(input, output, session) {
                       xaxis = list(title = input$x_var),
                       yaxis = list(title = input$y_var),
                       hovermode = "closest",
-                      barmode = "group")
+                      barmode = "group") 
+      
+    
     return(p)
   })
   
@@ -989,19 +991,21 @@ server <- function(input, output, session) {
     # View(allmodels_df())
     df <- allmodels_df() %>% 
       dplyr::filter(Channel==input$channel) %>% 
-      dplyr::select(Channel,input$modelof, MCV.MCV, CSF.CSF, lastyravgprice) %>% 
+      dplyr::select(Channel,input$modelof, MCV.MCV, CSF.CSF, lastyravgprice, initial_val) %>% 
       mutate(TopBar = MCV.MCV - lastyravgprice,
              Price_mid = lastyravgprice/2,
              CSF_pos = lastyravgprice + (TopBar*0.1),#0.5,#(TopBar/10),
-             MCV_top = MCV.MCV + 0.05) #%>% mutate(CSF_lable = paste0("CSF:", round(CSF.CSF,1),"%"))
+             MCV_top = MCV.MCV + 0.05) %>%
+      mutate(border_col = ifelse(initial_val == 'median', "red","#0E2841"))
     # View(df)
+    
     #Create Stacked bar plot
     p <- plot_ly(df, x = ~get(input$modelof)) %>% 
       # Bottom: Price
       add_trace(y = ~lastyravgprice, 
                 type = 'bar', 
                 name = "Price",
-                marker= list(color = "#156082", line = list(color = "#0E2841", width = 1.5)),#list(color = '#08519C'),
+                marker= list(color = "#156082", line = list(color = ~border_col, width = 2)),#list(color = '#08519C'),
                 text = ~paste("Price:",round(lastyravgprice,2)),#~CSF_lable, textposition = "inside", insidetextanchor = "start",
                 textposition = "inside",
                 insidetextanchor = "middle",
@@ -1016,7 +1020,7 @@ server <- function(input, output, session) {
       add_trace(y = ~TopBar, 
                 type = 'bar', 
                 name = 'MCV Extra',
-                marker= list(color = "#DCEAF7", line = list(color = "#0E2841", width = 1.5)), #list(color = 'lightblue'),
+                marker= list(color = "#DCEAF7", line = list(color = ~border_col, width = 2)), #list(color = 'lightblue'),
                 # text = ~paste("MCV:",round(MCV.MCV,2)),
                 # textposition = "inside",
                 # insidetextanchor = "end",
@@ -1278,7 +1282,7 @@ server <- function(input, output, session) {
     
     
     # Display status updates
-    output$process_output <- renderText(result)
+    # output$process_output <- renderText(result)
     output$process_status <- renderText("Process Completed Successfully!")
   })
   
@@ -1618,18 +1622,34 @@ server <- function(input, output, session) {
   # observe({
   #   view(L0L2L3grapha_df())
   # })
+  
   # Reactive expression for plot
   L0L2L3msp_plotly_reactive <- reactive({
     req(L0L2L3grapha_df())
     df <- L0L2L3grapha_df()
-    View(df)
+    # View(df)
     level0 <- input$L0_indicator # Brand
+    level1 <- input$L1_indicator
     level2 <- input$L2_indicator # Variant
     level3 <- input$L3_indicator # PPG
     
     df <- df %>% 
-      dplyr::select(Channel, level0,level2, level3, MSP, CSF, MCV, Price, MShare, NewMShare ) %>%
-      mutate(hover_text =  paste("Channel:",Channel, 
+      dplyr::select(level1, level0,level2, level3, MSP, CSF, MCV, Price, MShare, NewMShare ) %>%
+      arrange(level1, level0, level2, level3)
+    
+    # complete to make all L0-L2 combos for selected channel
+    df <- df %>% 
+      group_by(!!rlang::sym(level1)) %>% 
+      tidyr::complete(
+        !!rlang::sym(level0), 
+        !!rlang::sym(level2), 
+        !!rlang::sym(level3), 
+        fill = list(MSP = 0, CSF = 0, MCV = 0, Price = 0, MShare = 0, NewMShare = 0)) %>% 
+      ungroup()
+    
+    
+    df <- df %>% 
+      mutate(hover_text =  paste("Channel:",get(level1), 
                                  paste0("<br>",level0,":"),get(level0),
                                  paste0("<br>",level2,":"),get(level2),
                                  paste0("<br>",level3,":"),get(level3),
@@ -1637,10 +1657,9 @@ server <- function(input, output, session) {
                                  "<br>CSF:", paste(round(CSF,2)),
                                  "<br>Price:", paste(round(Price,2)),
                                  "<br>MShare:", paste(round(MShare,4)*100,"%"),
-                                 "<br>NewMShare:", paste(round(NewMShare,4)*100,"%"))) %>% 
-      arrange(Channel, level0, level2, level3)
-    
-    
+                                 "<br>NewMShare:", paste(round(NewMShare,4)*100,"%")))
+  
+    # View(df)
     
     #Create plot: one trace per PPG group
     p <- plot_ly()
@@ -1665,6 +1684,16 @@ server <- function(input, output, session) {
           hoverinfo = "text"
         )
     }
+    
+    # p <- p %>%
+    #   layout(
+    #     xaxis = list(title = paste(level0, "&", level2), tickangle = -30),
+    #     barmode = 'group',
+    #     title = paste("MSP by", level0, "and", level2),
+    #     yaxis = list(title = "MSP (%)"),
+    #     showlegend = TRUE
+    #   )
+    # 
     
     # p <- plot_ly(data = df, x = ~interaction(get(level0), get(level3), sep = " | "), y = ~MSP, 
     #              type = 'bar',

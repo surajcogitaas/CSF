@@ -22,8 +22,11 @@ library(RColorBrewer)
 library(rhandsontable)
 library(data.table)
 library(openxlsx)
+library(shiny.fluent)
+library(bs4Dash)
+library(rlang)
 
-# "#F0F8FF""#B0E0E6""#BFEFFF""#D6F0FF""#87CEEB""#87CEFA""#000080""#00008B""#191970""#003153""#002366""#2A2F4A""#0A1E5E" '#08519C'  "#156082""#DCEAF7""#0E2841"
+# "#f5f5f5" "#F0F8FF""#B0E0E6""#BFEFFF""#D6F0FF""#87CEEB""#87CEFA""#000080""#00008B""#191970""#003153""#002366""#2A2F4A""#0A1E5E" '#08519C'  "#156082""#DCEAF7""#0E2841"
 
 
 ui <- fluidPage(
@@ -35,8 +38,39 @@ ui <- fluidPage(
   # shinythemes::themeSelector(),
   # theme = bslib::bs_theme(bootswatch = "darkly"),
   # theme = bslib::bs_theme(bootswatch = "flatly"),
+  theme = bslib::bs_theme(bootswatch = "yeti"),
   
-  theme = shinytheme("flatly"),
+  # theme = shinytheme("flatly"),
+  # theme = bs_theme(bootswatch = "lux",
+  #                  primary = "#0066cc",
+  #                  base_font = "Arial", #font_google("Roboto"),
+  #                  code_font = "Courier New", #font_google("Fire Code"),
+  #                  bg = "#ffffff",
+  #                  fg = "#2c3e50",
+  #                  success = "#28a745"
+  #                  ), #"#2E86C1"
+  
+  # #  Define a modern, clean theme
+  # theme = bs_theme(
+  #   bootswatch = "flatly",  # or "lux", "cosmo", "minty"
+  #   primary = "#0073e6",    # elegant blue
+  #   base_font = font_google("Roboto")
+  # ),
+  
+  # theme = bs_theme(
+  #   bootswatch = "cosmo",        # Use "lux", "minty", "cosmo" for variations
+  #   primary = "#0073e6",          # Brand color (blue)
+  #   base_font = "Arial",          # Safe local font
+  #   code_font = "Courier New",    # Optional for code blocks
+  #   fg = "#2c3e50",               # Dark text
+  #   bg = "#ffffff",               # Clean white background
+  #   success = "#28a745"
+  # ),
+  
+  # "cosmo" — soft professional
+  # "minty" — greenish and modern
+  # "journal" — serif font with a classic feel
+  # "darkly" — for a dark-themed app
   
   # theme = bslib::bs_theme(bootswatch = "cosmo"),
   # theme = bslib::bs_theme(bootswatch = "simplex"),
@@ -55,6 +89,7 @@ ui <- fluidPage(
   #   }
   # "))
   # ),
+  
   tags$head(
     tags$style(HTML("
     #my_centered_box .box-title {
@@ -65,6 +100,19 @@ ui <- fluidPage(
     }
   "))
   ),
+  
+  
+
+  # tags$head(
+  #   tags$style(HTML("
+  #   .my-custom-box {
+  #     background-color: #f5f5f5;   
+  #     border-radius: 12px;
+  #     padding: 15px;
+  #     box-shadow: 2px 2px 10px rgba(0,0,0,0.1);
+  #   }
+  # "))
+  # ),
   
   
   fluidRow(
@@ -107,7 +155,7 @@ ui <- fluidPage(
                               
                               fluidRow(
                                 column(12,
-                                  box(title = "Move/Copy Files", width = 12, status = "primary", solidHeader = TRUE,collapsible = TRUE,
+                                  box(title = "Move/Copy Files", status = "primary", width = 12, solidHeader = TRUE,collapsible = TRUE,
                                       fluidRow(
                                         column(2,
                                                shinyDirButton("srcFolder", "Source Folder", "Select source folder"),
@@ -191,10 +239,10 @@ ui <- fluidPage(
                                     # Granularity/Scope Selection
                                     tags$h4("Granularity/Scope Selection:"),
                                     fluidRow(
-                                      column(3, selectInput("L0_indicator", "L0 Indicator", choices = c("NA","Channel","Brand","Variant","PackType","PPG","PackSize"), selected = 'NA')),
+                                      column(3, selectInput("L0_indicator", "L0 Indicator", choices = c("NA","Channel","Brand","Variant","PackType","PPG","PackSize"), selected = 'Brand')),
                                       column(3, conditionalPanel(
                                         condition = "input.L0_indicator != 'NA'",
-                                        selectInput("L1_indicator", "L1 Indicator", choices = c("NA","Channel","Brand","Variant","PackType","PPG","PackSize"), selected = 'NA')
+                                        selectInput("L1_indicator", "L1 Indicator", choices = c("NA","Channel","Brand","Variant","PackType","PPG","PackSize"), selected = 'Channel')
                                       )),
                                       column(3, conditionalPanel(
                                         condition = "input.L1_indicator != 'NA'",
