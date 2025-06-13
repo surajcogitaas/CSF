@@ -1634,8 +1634,8 @@ server <- function(input, output, session) {
     level3 <- input$L3_indicator # PPG
     
     df <- df %>% 
-      dplyr::select(level1, level0,level2, level3, MSP, CSF, MCV, Price, MShare, NewMShare ) %>%
-      arrange(level1, level0, level2, level3)
+      dplyr::select(!!!rlang::syms(c(level1, level0,level2, level3)), MSP, CSF, MCV, Price, MShare, NewMShare ) %>%
+      arrange(!!!rlang::syms(c(level1, level0,level2, level3)))
     
     # complete to make all L0-L2 combos for selected channel
     df <- df %>% 

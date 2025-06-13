@@ -1,3 +1,4 @@
+# options(shiny.fullstacktrace = TRUE)
 rm(list = ls())
 library(shiny)
 library(dplyr)
@@ -90,16 +91,16 @@ ui <- fluidPage(
   # "))
   # ),
   
-  tags$head(
-    tags$style(HTML("
-    #my_centered_box .box-title {
-      width: 100% !important;
-      text-align: center !important;
-      font-weight: bold !important;
-      font-size: 18px !important;
-    }
-  "))
-  ),
+  # tags$head(
+  #   tags$style(HTML("
+  #   #my_centered_box .box-title {
+  #     width: 100% !important;
+  #     text-align: center !important;
+  #     font-weight: bold !important;
+  #     font-size: 18px !important;
+  #   }
+  # "))
+  # ),
   
   
 
@@ -125,8 +126,8 @@ ui <- fluidPage(
     style = "display: flex; justify-content: flex-end; align-items: center; gap: 10px; margin-top: 20px;",
     shinyDirButton("select_dir", "Select Project Directory", "Select a directory"),
     # br(),
-    verbatimTextOutput("selected_dir"),
-  ),)),
+    verbatimTextOutput("selected_dir")
+  ))),
   
   
   # div(
@@ -158,13 +159,13 @@ ui <- fluidPage(
                                   box(title = "Move/Copy Files", status = "primary", width = 12, solidHeader = TRUE,collapsible = TRUE,
                                       fluidRow(
                                         column(2,
-                                               shinyDirButton("srcFolder", "Source Folder", "Select source folder"),
+                                               shinyDirButton("srcFolder", "Source Folder", "Select source folder")
                                         ),
                                         column(3, 
-                                               verbatimTextOutput("srcDir"),
+                                               verbatimTextOutput("srcDir")
                                         ),
                                         column(3,
-                                               selectInput("dataFile", "Files:", choices = NULL, multiple = TRUE),
+                                               selectInput("dataFile", "Files:", choices = NULL, multiple = TRUE)
                                         ),
                                         column(2, offset = 2,
                                                actionButton("reset", "Reset")
@@ -173,22 +174,22 @@ ui <- fluidPage(
                                       
                                       fluidRow(
                                         column(2,
-                                               shinyDirButton("destFolder", "Destination Folder", "Select destination folder"),
+                                               shinyDirButton("destFolder", "Destination Folder", "Select destination folder")
                                         ),
                                         column(3,
-                                               verbatimTextOutput("destDir"),
+                                               verbatimTextOutput("destDir")
                                         ),
                                         column(2,
-                                               actionButton("copy", "Copy Files"),
+                                               actionButton("copy", "Copy Files")
                                         ),
                                         column(2,
-                                               actionButton("move", "Move Files"),
+                                               actionButton("move", "Move Files")
                                         ),
                                         column(3,
                                                verbatimTextOutput("message")
                                         )
                                         
-                                      ),
+                                      )
                                       
                                   )
                                 )
@@ -200,12 +201,12 @@ ui <- fluidPage(
                                     fluidRow(
                                       column(2,
                                              # Row for selecting work type (Dropdown)
-                                             selectInput("worktype", "Select Work Type", choices = c("Onboard", "Continuity","Refresh")),
+                                             selectInput("worktype", "Select Work Type", choices = c("Onboard", "Continuity","Refresh"))
                                       ),
                                       column(3,
                                              # Row for integration process selection (Yes/No)
                                              radioButtons("integration_needed", "Integration Process Needed?", 
-                                                          choices = c("Yes", "No"), selected = "No"),
+                                                          choices = c("Yes", "No"), selected = "No")
                                       ),
                                       column(2,
                                              
@@ -217,7 +218,7 @@ ui <- fluidPage(
                                                                     choices = c("Brand_Variant", "Brand_PPG", "Brand_PackType", "Brand_Variant_PPG"),selected = "Brand_Variant")
                                                  )
                                                )
-                                             ),
+                                             )
                                              
                                       ),
                                       # column(1,),
@@ -231,27 +232,33 @@ ui <- fluidPage(
                                              # Row for csf_period selection
                                              selectInput("csf_period", "csf Period", 
                                                          choices = c(52, 12))
-                                      ),
-                                      
-                                      
-                                      
+                                      )
+  
                                     ),
                                     # Granularity/Scope Selection
                                     tags$h4("Granularity/Scope Selection:"),
                                     fluidRow(
-                                      column(3, selectInput("L0_indicator", "L0 Indicator", choices = c("NA","Channel","Brand","Variant","PackType","PPG","PackSize"), selected = 'Brand')),
-                                      column(3, conditionalPanel(
-                                        condition = "input.L0_indicator != 'NA'",
-                                        selectInput("L1_indicator", "L1 Indicator", choices = c("NA","Channel","Brand","Variant","PackType","PPG","PackSize"), selected = 'Channel')
-                                      )),
-                                      column(3, conditionalPanel(
-                                        condition = "input.L1_indicator != 'NA'",
-                                        selectInput("L2_indicator", "L2 Indicator", choices = c("NA","Channel","Brand","Variant","PackType","PPG","PackSize"), selected = 'NA')
-                                      )),
-                                      column(3, conditionalPanel(
-                                        condition = "input.L2_indicator != 'NA'",
-                                        selectInput("L3_indicator", "L3 Indicator", choices = c("NA","Channel","Brand","Variant","PackType","PPG","PackSize"), selected = 'NA')
-                                      ))
+                                      column(3, 
+                                             selectInput("L0_indicator", "L0 Indicator", choices = c("NA","Channel","Brand","Variant","PackType","PPG","PackSize"), selected = 'NA')
+                                             ),
+                                      column(3, 
+                                             conditionalPanel(
+                                               condition = "input.L0_indicator != 'NA'",
+                                               selectInput("L1_indicator", "L1 Indicator", choices = c("NA","Channel","Brand","Variant","PackType","PPG","PackSize"), selected = 'NA')
+                                               )
+                                             ),
+                                      column(3, 
+                                             conditionalPanel(
+                                               condition = "input.L1_indicator != 'NA'",
+                                               selectInput("L2_indicator", "L2 Indicator", choices = c("NA","Channel","Brand","Variant","PackType","PPG","PackSize"), selected = 'NA')
+                                               )
+                                             ),
+                                      column(3, 
+                                             conditionalPanel(
+                                               condition = "input.L2_indicator != 'NA'",
+                                               selectInput("L3_indicator", "L3 Indicator", choices = c("NA","Channel","Brand","Variant","PackType","PPG","PackSize"), selected = 'NA')
+                                               )
+                                             )
                                     )
                                   )
                                 )
@@ -265,10 +272,8 @@ ui <- fluidPage(
                                            
                                            selectInput("L0_file", "Select L0 File", choices = NULL, multiple = TRUE),
                                            
-                                           
                                            # Button to trigger the file loading process
                                            actionButton("upload_btn", "Upload Files"),
-                                           
                                            
                                            uiOutput("modelof_ui"),
                                            
@@ -276,11 +281,8 @@ ui <- fluidPage(
                                            uiOutput("category_elas_ui"),  # Dynamic Channel Filter
                                            uiOutput("price_pval_ui"),  # Dynamic Channel Filter
                                            
-                                           
-                                           
                                            radioButtons("plot_type", "Select Plot Type:",
                                                         choices = c("Scatter Plot", "Box Plot", "Bar Plot"), selected = "Bar Plot"),
-                                           
                                            
                                            # downloadButton("download_file1", "Download File")
                                            actionButton("update_file_bttn", "Update File", icon = icon("save")),
@@ -289,24 +291,24 @@ ui <- fluidPage(
                                            
                                            verbatimTextOutput("process_status")
                                            
-                                       ),),
+                                       )),
                                 column(9,
                                        box(title = "Filters", width = 12, status = "primary", solidHeader = TRUE,collapsible = TRUE,
                                            fluidRow(
                                              column(3,
-                                                    uiOutput("channel_ui"),  # Dynamic Channel Filter
+                                                    uiOutput("channel_ui")  # Dynamic Channel Filter
                                              ),
                                              column(3,
-                                                    uiOutput("brand_ui"),    # Dynamic Brand Filter
+                                                    uiOutput("brand_ui")  # Dynamic Brand Filter
                                              ),
                                              column(2,
-                                                    uiOutput("x_var_ui"),  # Dynamically generated X-axis dropdown
+                                                    uiOutput("x_var_ui")  # Dynamically generated X-axis dropdown
                                              ),
                                              column(2,
-                                                    uiOutput("y_var_ui"),  # Dynamically generated Y-axis dropdown
+                                                    uiOutput("y_var_ui") # Dynamically generated Y-axis dropdown
                                              ),
                                              column(2,
-                                                    uiOutput("method_ui"),  # Dynamic Channel Filter
+                                                    uiOutput("method_ui")  # Dynamic Channel Filter
                                              )
                                            ),
                                            fluidRow(
@@ -323,10 +325,7 @@ ui <- fluidPage(
                                                     uiOutput("csf_ui") # Dynamic AdjRsq
                                              )
                                            )
-                                           
-                                           
                                        ),
-                                       
                                        box(title = "Plot", width = 12, status = "primary", solidHeader = TRUE,collapsible = TRUE,
                                            fluidRow(
                                              column(width = 12,
@@ -352,10 +351,10 @@ ui <- fluidPage(
                                            )
                                            
                                        )
-                                ),),
+                                )),
                               
                               fluidRow(
-                                box(title = "Uploaded Data", width = 12, status = "primary", solidHeader = TRUE,
+                                box(title = "Uploaded Data", width = 12, status = "primary", solidHeader = TRUE, collapsible = FALSE,
 
                                     fluidRow(
                                       column(12,
@@ -364,7 +363,7 @@ ui <- fluidPage(
                                              # rHandsontableOutput("L0_file_contents")
                                              plotlyOutput("stacked_plot_op")
                                             
-                                      ),
+                                      )
                                      
                                     ),
                                     fluidRow(
@@ -513,7 +512,7 @@ ui <- fluidPage(
                                           )
                                         )
                                     )
-                                ),
+                                )
                                 
                               )
                      )
@@ -521,7 +520,7 @@ ui <- fluidPage(
                  )
                )
         
-      ),
+      )
       # #Tap1
       # tabPanel(
       #   title="M1 to Results",
@@ -632,7 +631,7 @@ ui <- fluidPage(
 
     tabPanel(
       title="Tab 2",
-      h2("Content of Tab 2"),
+      h2("Content of Tab 2")
       
     ),
     tabPanel(
@@ -640,10 +639,10 @@ ui <- fluidPage(
       h2("Content of Tab 3")
     ),
     
-    navbarMenu(
-      title = "temp"
-      
-    ),
+    # navbarMenu(
+    #   title = "temp"
+    #   
+    # ),
     
   )
 )
