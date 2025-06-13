@@ -24,7 +24,7 @@ library(rhandsontable)
 library(data.table)
 library(openxlsx)
 library(shiny.fluent)
-library(bs4Dash)
+# library(bs4Dash)
 library(rlang)
 
 # "#f5f5f5" "#F0F8FF""#B0E0E6""#BFEFFF""#D6F0FF""#87CEEB""#87CEFA""#000080""#00008B""#191970""#003153""#002366""#2A2F4A""#0A1E5E" '#08519C'  "#156082""#DCEAF7""#0E2841"
@@ -91,18 +91,16 @@ ui <- fluidPage(
   # "))
   # ),
   
-  # tags$head(
-  #   tags$style(HTML("
-  #   #my_centered_box .box-title {
-  #     width: 100% !important;
-  #     text-align: center !important;
-  #     font-weight: bold !important;
-  #     font-size: 18px !important;
-  #   }
-  # "))
-  # ),
-  
-  
+  tags$head(
+    tags$style(HTML("
+    #my_centered_box .box-title {
+      width: 100% !important;
+      text-align: center !important;
+      font-weight: bold !important;
+      font-size: 18px !important;
+    }
+  "))
+  ),
 
   # tags$head(
   #   tags$style(HTML("
@@ -114,7 +112,6 @@ ui <- fluidPage(
   #   }
   # "))
   # ),
-  
   
   fluidRow(
     column(4,
@@ -139,8 +136,8 @@ ui <- fluidPage(
 
   #First Nav bar page
   navbarPage(
-    position = c("static-top"), #"fixed-top", "fixed-bottom","static-top"),
     title="CSF",
+    position = c("static-top"), #"fixed-top", "fixed-bottom","static-top"),
     fluid = TRUE,
     collapsible = TRUE,
     
@@ -230,8 +227,8 @@ ui <- fluidPage(
                                       
                                       column(2,
                                              # Row for csf_period selection
-                                             selectInput("csf_period", "csf Period", 
-                                                         choices = c(52, 12))
+                                             selectizeInput("csf_period", "csf Period", 
+                                                         choices = c(1:52), multiple=FALSE)
                                       )
   
                                     ),
@@ -239,24 +236,24 @@ ui <- fluidPage(
                                     tags$h4("Granularity/Scope Selection:"),
                                     fluidRow(
                                       column(3, 
-                                             selectInput("L0_indicator", "L0 Indicator", choices = c("NA","Channel","Brand","Variant","PackType","PPG","PackSize"), selected = 'NA')
+                                             selectInput("L0_indicator", "L0 Indicator", choices = c("NA","Channel","Brand","Variant","PackType","PPG","PackSize"), selected = 'Brand')
                                              ),
                                       column(3, 
                                              conditionalPanel(
                                                condition = "input.L0_indicator != 'NA'",
-                                               selectInput("L1_indicator", "L1 Indicator", choices = c("NA","Channel","Brand","Variant","PackType","PPG","PackSize"), selected = 'NA')
+                                               selectInput("L1_indicator", "L1 Indicator", choices = c("NA","Channel","Brand","Variant","PackType","PPG","PackSize"), selected = 'Channel')
                                                )
                                              ),
                                       column(3, 
                                              conditionalPanel(
                                                condition = "input.L1_indicator != 'NA'",
-                                               selectInput("L2_indicator", "L2 Indicator", choices = c("NA","Channel","Brand","Variant","PackType","PPG","PackSize"), selected = 'NA')
+                                               selectInput("L2_indicator", "L2 Indicator", choices = c("NA","Channel","Brand","Variant","PackType","PPG","PackSize"), selected = 'Variant')
                                                )
                                              ),
                                       column(3, 
                                              conditionalPanel(
                                                condition = "input.L2_indicator != 'NA'",
-                                               selectInput("L3_indicator", "L3 Indicator", choices = c("NA","Channel","Brand","Variant","PackType","PPG","PackSize"), selected = 'NA')
+                                               selectInput("L3_indicator", "L3 Indicator", choices = c("NA","Channel","Brand","Variant","PackType","PPG","PackSize"), selected = 'PPG')
                                                )
                                              )
                                     )
@@ -273,7 +270,8 @@ ui <- fluidPage(
                                            selectInput("L0_file", "Select L0 File", choices = NULL, multiple = TRUE),
                                            
                                            # Button to trigger the file loading process
-                                           actionButton("upload_btn", "Upload Files"),
+                                           actionButton("upload_btn", "Upload Files", icon = icon("upload")),
+                                           actionButton("update_file_bttn", "Update File", icon = icon("save")),
                                            
                                            uiOutput("modelof_ui"),
                                            
@@ -285,9 +283,10 @@ ui <- fluidPage(
                                                         choices = c("Scatter Plot", "Box Plot", "Bar Plot"), selected = "Bar Plot"),
                                            
                                            # downloadButton("download_file1", "Download File")
-                                           actionButton("update_file_bttn", "Update File", icon = icon("save")),
+                                           
                                            
                                            actionButton("run_process", "Run Process", icon = icon("play")),
+                                           actionButton("download_file_bttn", "Download Files", icon = icon("download")),
                                            
                                            verbatimTextOutput("process_status")
                                            
@@ -516,6 +515,7 @@ ui <- fluidPage(
                                 
                               )
                      )
+                     ##############################################################################################################
                    )
                  )
                )

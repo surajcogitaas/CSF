@@ -51,7 +51,6 @@ server <- function(input, output, session) {
     shinyDirChoose(input, "destFolder", roots = roots)
   })
   
-  
   fileList <- reactiveVal(NULL)
   
   observeEvent(input$srcFolder, {
@@ -206,10 +205,10 @@ server <- function(input, output, session) {
     return(lst)
   })
   
-  observe({
-    req(file_list())  
-    print(names(file_list()))
-    })
+  # observe({
+  #   req(file_list())  
+  #   print(names(file_list()))
+  #   })
   
   # Render the combined data table
   output$combined_data <- DT::renderDataTable({
@@ -1288,6 +1287,30 @@ server <- function(input, output, session) {
   
   ########################################################### M1 to Result:-Sidebar end ################################################################
   
+  #------------------------------------------------------------
+  ######## download MSP and other files -Start
+  #------------------------------------------------------------
+  
+  #Define a directory contain LO file
+  validator_dir <- reactive({file.path(dir_path(),"Onboard/9. Validator Output" )})
+  
+  observeEvent(input$download_file_bttn,{
+    req(msp_storage)
+    # print(paste0("names(msp_storage) : ",names(msp_storage$data)))
+    # print(paste0("validator_dir",validator_dir()))
+    for(levl_i in names(msp_storage$data)){
+      df <- msp_storage$data[[levl_i]]
+      write.csv(df, file.path(Base_Path, worktype, "9. Validator Output", paste0("MSP_", levl_i)), row.names = F)
+    }
+
+  })
+  
+  
+  #------------------------------------------------------------
+  ######## download MSP and other files -End
+  #------------------------------------------------------------
+  
+  
   ##################################################### START CREATING GRAPHS AFTER INTEGRATOR CODE ########################################################################################
   # Add msp files for further use
   # observe({print(paste("names(msp_storage$data) :",names(msp_storage$data)))})
@@ -1434,7 +1457,6 @@ server <- function(input, output, session) {
   output$L0msp_plot <- renderPlotly({
     L0msp_plotly_reactive()
   })
-  
   
   ############################ MSP L0L2 Level Graph
   ## L0L2_level Graphs title
@@ -1664,7 +1686,7 @@ server <- function(input, output, session) {
     #Create plot: one trace per PPG group
     p <- plot_ly()
     
-    print(paste("unique(df[[level3]])) : ",unique(df[[level3]])))
+    # print(paste("unique(df[[level3]])) : ",unique(df[[level3]])))
     for (L3val in unique(df[[level3]])) {
       df_sub <- df[df[[level3]] == L3val, ]
       
