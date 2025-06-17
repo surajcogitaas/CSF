@@ -1197,11 +1197,11 @@ server <- function(input, output, session) {
   })
   # observe({print(D0_file_name())})
   
-  #msp file storage
-  msp_storage <- reactiveValues(data =list())
   
-  ## Trigger Script Execution 
-  observeEvent(input$run_process, {
+  
+  ## Trigger Script Execution
+  
+  result <- eventReactive(input$run_process, {
     output$process_status <- renderText("Processing...Please wait.")
     
     
@@ -1263,29 +1263,62 @@ server <- function(input, output, session) {
     # print(paste("result :",names(result)))
     # print(paste("result 1 :",View(result[["L0L2.csv"]][["allMSP"]])))
     
-    level_list <- names(result)
-    for(lev_i in 1:length(level_list)){
-      level_selected <- level_list[lev_i]
-      
-      if(!is.null(result[[level_selected]][["allMSP"]])){
-        print(paste("✅ Stored allMSP for:", level_selected))
-        msp_storage$data[[level_selected]] <- result[[level_selected]][["allMSP"]]
-      }else{
-        msp_storage$data[[level_selected]] <- NULL
-        print(paste("⚠️ No allMSP found for:", level_selected))
-      }
-    }
+    
     
     # print(paste("names(msp_storage$data) :",names(msp_storage$data)))
     # print(paste("names(msp_storage$data) data:",View(msp_storage$data[[level_list[length(level_list)]]])))
+    
+    # # Extract L0,L2,L3 files
+    # level_list <- names(result)
+    # for(lev_i in 1:length(level_list)){
+    #   level_selected <- level_list[lev_i]
+    # 
+    #   if(!is.null(result[[level_selected]][["allcurvedata"]])){
+    #     print(paste("✅ Stored allcurvedata for:", level_selected))
+    #     msp_storage$data[[level_selected]] <- result[[level_selected]][["allcurvedata"]]
+    #   }else{
+    #     msp_storage$data[[level_selected]] <- NULL
+    #     print(paste("⚠️ No allcurvedata found for:", level_selected))
+    #   }
+    # }
+    
+     
     
     
     # Display status updates
     # output$process_output <- renderText(result)
     output$process_status <- renderText("Process Completed Successfully!")
+    return(result)
   })
   
   ########################################################### M1 to Result:-Sidebar end ################################################################
+  #-------------------------------------------------------
+  ##### extract MSP files- Start
+  #-------------------------------------------------------
+  # msp file storage
+
+  msp_storage <- reactiveValues(data =list())
+  observe({
+    req(result())
+    # print(paste0("names(result()) :",names(result()[["msp_results_list"]]) ))
+    # print(result()[["msp_results_list"]][["L0.csv"]][["allMSP"]])
+    # Extract MSP Files
+    level_list <- names(result()[["msp_results_list"]])
+    for(lev_i in 1:length(level_list)){
+      level_selected <- level_list[lev_i]
+
+      if(!is.null(result()[["msp_results_list"]][[level_selected]][["allMSP"]])){
+        print(paste("✅ Stored allMSP for:", level_selected))
+        msp_storage$data[[level_selected]] <- result()[["msp_results_list"]][[level_selected]][["allMSP"]]
+      }else{
+        msp_storage$data[[level_selected]] <- NULL
+        print(paste("⚠️ No allMSP found for:", level_selected))
+      }
+    }
+  })
+  #-------------------------------------------------------
+  ##### extract MSP files- End
+  #-------------------------------------------------------
   
   #------------------------------------------------------------
   ######## download MSP and other files -Start
@@ -1302,13 +1335,41 @@ server <- function(input, output, session) {
       df <- msp_storage$data[[levl_i]]
       write.csv(df, file.path(Base_Path, worktype, "9. Validator Output", paste0("MSP_", levl_i)), row.names = F)
     }
-
   })
-  
   
   #------------------------------------------------------------
   ######## download MSP and other files -End
   #------------------------------------------------------------
+  
+  #-------------------------------------------------------
+  #### Extract RPI curve data files -Start
+  #--------------------------------------------------------
+  # L0L2L3 files storage
+  L0L2L3_storage <- reactiveValues(data = list())
+  observeEvent(input$download_file_bttn,{
+    req(result())
+    # print(names(result()))
+    # Extract MSP Files
+    level_list <- names(result()[["msp_results_list"]])
+    for(lev_i in 1:length(level_list)){
+      level_selected <- level_list[lev_i]
+      
+      if(!is.null(result()[["msp_results_list"]][[level_selected]][["allcurvedata"]])){
+        print(paste("✅ Stored allcurvedata for:", level_selected))
+        df <- result()[["msp_results_list"]][[level_selected]][["allcurvedata"]]
+        L0L2L3_storage$data[[level_selected]] <- df
+        write.csv(df, file.path(Base_Path, worktype, "9. Validator Output", paste0("RPI Curves_", level_selected)), row.names = F)
+      }else{
+        L0L2L3_storage$data[[level_selected]] <- NULL
+        print(paste("⚠️ No allcurvedata found for:", level_selected))
+      }
+    }
+  })
+  
+  #-------------------------------------------------------
+  #### Extract RPI curve data files -Start
+  #--------------------------------------------------------
+  
   
   
   ##################################################### START CREATING GRAPHS AFTER INTEGRATOR CODE ########################################################################################
