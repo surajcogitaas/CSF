@@ -134,11 +134,18 @@ ui <- fluidPage(
     ),
     column(8,
            div(
-    # style =  "top:20px; right:20px; display:flex; align-items:center; gap:10px",
-    style = "display: flex; justify-content: flex-end; align-items: center; gap: 10px; margin-top: 20px;",
+    style =  "
+    display: flex;
+    justify-content: flex-start;  /* left‑align horizontally            */
+    align-items: flex-start;          /* centre vertically inside the row   */
+    gap: 10px;                    /* space between the two widgets      */
+    margin-top: 20px;             /* keep your original top margin      */
+    ",           
+    # top:20px; right:20px"; 
+    # style = "display: flex; justify-content: flex-end; align-items: center; gap: 10px; margin-top: 20px;",
     shinyDirButton("select_dir", "Select Project Directory", "Select a directory"),
     # br(),
-    verbatimTextOutput("selected_dir")
+    verbatimTextOutput("selected_dir", placeholder = TRUE)
   ))),
   
   
@@ -243,7 +250,7 @@ ui <- fluidPage(
                                       column(2,
                                              # Row for csf_period selection
                                              selectizeInput("csf_period", "csf Period", 
-                                                         choices = c(1:52), multiple=FALSE)
+                                                         choices = c(1:52), select =c(52) ,multiple=FALSE)
                                       )
   
                                     ),
@@ -300,11 +307,17 @@ ui <- fluidPage(
                                            # downloadButton("download_file1", "Download File")
                                            
                                            
-                                           actionButton("run_process", "Run Process", icon = icon("play")),
+                                           actionBttn("run_process",
+                                                      label =  "Run Process", 
+                                                      icon = icon("play"),
+                                                      color = 'primary',
+                                                      style = "fill",
+                                                      size = "sm"),
+                                                      
                                            actionButton("download_file_bttn", "Download Files", icon = icon("download")),
                                            
-                                           verbatimTextOutput("process_status")
-                                           
+                                           verbatimTextOutput("process_status"),
+                                 
                                        )),
                                 column(9,
                                        box(title = "Filters", width = 12, status = "primary", solidHeader = TRUE,collapsible = TRUE,
